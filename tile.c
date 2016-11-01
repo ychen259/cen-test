@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h> /* memcpy */
+#define AXIS 5 /* AXIS by AXIS board */
 
 enum edge {
 	NONE = 0,
@@ -46,15 +47,49 @@ void print_tile(struct tile t)
 	printf("+%c+\n", tiles[t.edges[2]]);
 }
 
+struct slot {
+	unsigned int x;
+	unsigned int y;
+};
+
+struct slot make_slot(unsigned int x, unsigned int y)
+{
+	struct slot s = {
+		.x = x,
+		.y = y
+	};
+	return s;
+}
+
+int compare_slots(struct slot a, struct slot b)
+{
+	if (a.x < b.x) {
+		return -1;
+	} else if (a.x > b.x) {
+		return 1;
+	} else if (a.y < b.y) {
+		return -1;
+	} else if (a.y > b.y) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 struct board {
-	struct tile tiles[4*4]; /* Arbitrary sizing */
+	struct tile tiles[AXIS*AXIS]; /* Arbitrary sizing */
+	struct slot valid_slots[AXIS*AXIS]; /* Again arbitrary. */
+	unsigned int valid_slot_count;
 };
 
 struct board make_board(void)
 {
 	struct board b;
-	enum edge edges[5] = { NONE, NONE, NONE, NONE, NONE };
-	for (int i = 0; i < 4*4; ++i) {
+	const enum edge edges[5] = { NONE, NONE, NONE, NONE, NONE };
+	const unsigned int mid = (AXIS - 1) / 2; /* Gotta start in center. */
+	b.valid_slots[0] = make_slot(mid, mid);
+	b.valid_slot_count = 1;
+	for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
 		b.tiles[i] = create_tile(edges);
 	}
 	return b;
@@ -62,12 +97,54 @@ struct board make_board(void)
 
 void print_board(struct board b)
 {
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			print_tile(b.tiles[i*4 + j]);
+	for (int i = 0; i < AXIS; ++i) {
+		for (int j = 0; j < AXIS; ++j) {
+			print_tile(b.tiles[i*AXIS + j]);
 		}
 		printf("\n");
 	}
+}
+
+int validate_slot(struct board b, struct slot s)
+{
+	unsigned int low = 0;
+	unsigned int high = b.valid_slot_count;
+	unsigned int m;
+	while (low < high) {
+		m = (low + high) / 2;
+		switch(compare_slots(b.valid_slots[m], s)) {
+		case -1:
+			low = m + 1;
+			break;
+		case 1:
+			high = m - 1;
+			break;
+		case 0:
+			return m;
+		}
+	}
+	return -1;
+}
+
+struct move {
+	struct tile tile;
+	struct slot slot;
+	int rotation;
+};
+
+struct move make_move(struct tile t, struct slot s, int rotation)
+{
+	struct move m = {
+		.tile = t,
+		.slot = s,
+		.rotation = rotation
+	};
+	return m;
+}
+
+void play_move(struct board b, struct move m)
+{
+	b.tiles[m.slot.x * AXIS + m.slot.y] = rotate_tile(m.tile, m.rotation);
 }
 
 int main(void)
@@ -98,8 +175,9 @@ int main(void)
 	print_board(b);
 
 	printf("\nTop row city. \n");
-	for (int i = 0; i < 4; ++i) {
-		b.tiles[i] = create_tile(city);
+	for (int i = 0; i < AXIS; ++i) {
+		struct slot s = make_slot(i, 0);
+		play_move(b, make_move(create_tile(city), s, 0));
 	}
 	print_board(b);
 
