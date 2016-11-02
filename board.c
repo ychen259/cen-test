@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>	/* memcpy */
+#include <stdlib.h>	/* free() */
 #include "edge.h"	/* edges. */
 #include "tile.h"	/* tiles. */
 #include "slot.h"	/* slots. */
@@ -27,12 +28,24 @@ struct board make_board(void)
 
 void print_board(struct board b)
 {
+	char res[2][(AXIS * AXIS) * (13 - 1) + 1]; /* Null terminators */
+	size_t off = 0;
 	for (int i = 0; i < AXIS; ++i) {
 		for (int j = 0; j < AXIS; ++j) {
-			print_tile(b.tiles[i*AXIS + j]);
+			print_tile(b.tiles[i * AXIS + j], res[0] + off);
+			off += (13 - 1);
 		}
-		printf("\n");
 	}
+	printf("%s\n", res[0]);
+
+	/* TODO: Pretty print the board in NxN format. */
+#if 0
+	for (int i = 0; i < AXIS; ++i) {
+		for (int j = 0; j < AXIS; ++j) {
+			memcpy(res[1], res[0] + i * (AXIS * 12) + 12 * j, 12);
+		}
+	}
+#endif
 }
 
 static unsigned index_slot(struct slot s)
@@ -157,6 +170,7 @@ static int validate_move(struct board b, struct move m)
 		return 1;
 	}
 	/* TODO: Add logic to ensure tile placements are correct */
+	/* e.g. tile edges are matched up. Road with Road etc. */
 	return 0;
 }
 
@@ -174,25 +188,26 @@ struct board play_move(struct board b, struct move m)
 
 int main(void)
 {
+	char buffer[13];
+	enum edge edges[5][5] = {
+		{ NONE, NONE, NONE, NONE, NONE },
+		{ ROAD, ROAD, ROAD, ROAD, ROAD },
+		{ FIELD, FIELD, FIELD, FIELD, FIELD },
+		{ CITY, CITY, CITY, CITY, CITY },
+		{ CITY, FIELD, ROAD, CITY, ROAD }
+	};
+	const char string[5][30] = {
+		"\nEmpty tile: \n%s\n",
+		"\nAll Road tile: \n%s\n",
+		"\nAll Field tile: \n%s\n",
+		"\nAll City tile: \n%s\n",
+		"\nMixed tile: \n%s\n"
+	};
+
 	printf("Testing different tile types.\n");
-	printf("\nEmpty tile: \n");
-	enum edge empty[5] = { NONE, NONE, NONE, NONE, NONE };
-	print_tile(create_tile(empty));
-	printf("\nAll Road tile: \n");
-	enum edge road[5] = { ROAD, ROAD, ROAD, ROAD, ROAD };
-	print_tile(create_tile(road));
-	printf("\nAll Field tile: \n");
-	enum edge field[5] = { FIELD, FIELD, FIELD, FIELD, FIELD };
-	print_tile(create_tile(field));
-	printf("\nAll City tile: \n");
-	enum edge city[5] = { CITY, CITY, CITY, CITY, CITY };
-	print_tile(create_tile(city));
-	printf("\nMixed tile: \n");
-	enum edge mixed[5] = { CITY, FIELD, ROAD, CITY, ROAD };
-	print_tile(create_tile(mixed));
-	for (int i = 1; i <= 4; ++i) {
-		printf("\nRotate mixed tile %d: \n", i);
-		print_tile(rotate_tile(create_tile(mixed), i));
+	for (int i = 0; i < 5; ++i) {
+		print_tile(create_tile(edges[i]), buffer);
+		printf(string[i], buffer);
 	}
 
 	printf("\nTesting board creation. All Null.\n");
@@ -202,14 +217,14 @@ int main(void)
 	printf("\nTop row city. All invalid: \n");
 	for (int i = 0; i < AXIS; ++i) {
 		struct slot s = make_slot(i, 0);
-		play_move(b, make_move(create_tile(city), s, 0));
+		play_move(b, make_move(create_tile(edges[3]), s, 0));
 	}
 
 	printf("\nLet's see what slots are placeable.\n");
 	print_placeable_slots(b);
 	printf("\nPlay the center. Valid starting move.\n");
 	b = play_move(b,
-		make_move(create_tile(city), make_slot(AXIS/2,AXIS/2), 0));
+		make_move(create_tile(edges[3]), make_slot(AXIS/2,AXIS/2), 0));
 	print_board(b);
 
 	printf("\nAnd now what slots are placeable?\n");
