@@ -60,6 +60,20 @@ static unsigned index_slot(struct slot s)
 
 static int slot_placeable(struct board b, struct slot s)
 {
+#if 0
+	/* TODO: Switch to linear search? */
+	/* Linear search open positions for the desired one. */
+	for (unsigned i = 0; i < b.sps; ++i) {
+		switch(compare_slots(b.slot_spots[i], s)) {
+		case -1:
+			continue;
+		case 0:
+			return i + 1;
+		case 1:
+			return 0;
+		}
+	}
+#endif
 	/* Binary search open positions for the desired one. */
 	int low = 0;
 	int high = b.sps;
@@ -102,7 +116,7 @@ static int slot_on_board(struct slot s)
 static struct board add_placeable_slot(struct board b, struct slot s)
 {
 	size_t i = 0;
-	while (i < b.sps && compare_slots(s, b.slot_spots[i]) < 0) {
+	while (i < b.sps && compare_slots(s, b.slot_spots[i]) > 0) {
 		i++;
 	}
 	if (i < b.sps) { /* Sorted insert. */
@@ -172,18 +186,37 @@ struct move make_move(struct tile t, struct slot s, int rotation)
 static int validate_move(struct board b, struct move m)
 {
 	if (!slot_placeable(b, m.slot)) {
+		fprintf(stderr, "Invalid location for tile.\n");
 		return 1;
 	}
-	/* TODO: Add logic to ensure tile placements are correct */
-	/* e.g. tile edges are matched up. Road with Road etc. */
+	/* Check adjacent tiles to make sure edges match. */
+	struct slot adj[4] = {
+		make_slot(m.slot.x, m.slot.y + 1),	/* up */
+		make_slot(m.slot.x + 1, m.slot.y),	/* right */
+		make_slot(m.slot.x, m.slot.y - 1),	/* down */
+		make_slot(m.slot.x - 1, m.slot.y)	/* left*/
+	};
+	for (unsigned int i = 0; i < sizeof(adj); ++i) { /* Need wrapping */
+		struct slot adjs = adj[i];
+		if (!slot_on_board(adjs)) { /* ignore if not on board. */
+			continue;
+		}
+		enum edge pair = b.tiles[index_slot(adjs)].edges[(i + 2) % 4];
+		if (pair == NONE) {
+			continue; /* Empty tiles match with everything. */
+		}
+		if (pair != m.tile.edges[i]) { /* Corresponding don't match. */
+			fprintf(stderr, "Edges don't match.\n");
+			return 1;
+		}
+	}
 	return 0;
 }
 
+/* TODO refactor to return error code - we need to know if we make a bad move */
 struct board play_move(struct board b, struct move m)
 {
 	if (validate_move(b, m)) {
-		printf("Invalid location for tile (%u, %u)!\n",
-				m.slot.x, m.slot.y);
 		return b;
 	}
 	printf("Valid location for tile (%u, %u)!\n", m.slot.x, m.slot.y);
@@ -201,6 +234,14 @@ int main(void)
 		{ CITY, CITY, CITY, CITY, CITY },
 		{ CITY, FIELD, ROAD, CITY, ROAD }
 	};
+	struct tile tiles[5] = {
+		create_tile(edges[0]),
+		create_tile(edges[1]),
+		create_tile(edges[2]),
+		create_tile(edges[3]),
+		create_tile(edges[4])
+	};
+
 	const char string[5][30] = {
 		"\nEmpty tile: \n%s\n",
 		"\nAll Road tile: \n%s\n",
@@ -211,15 +252,14 @@ int main(void)
 
 	printf("Testing different tile types.\n");
 	for (int i = 0; i < 5; ++i) {
-		print_tile(create_tile(edges[i]), buffer);
+		print_tile(tiles[i], buffer);
 		printf(string[i], buffer);
 	}
 
 	printf("\nTile Rotations: \n");
 	for (int i = 0; i < 4; ++i) {
-		print_tile(rotate_tile(create_tile(edges[4]), i), buffer);
+		print_tile(rotate_tile(tiles[4], i), buffer);
 		printf("%d rotation:\n%s\n", i, buffer);
-
 	}
 
 	printf("\nTesting board creation. All Null.\n");
@@ -229,17 +269,26 @@ int main(void)
 	printf("\nTop row city. All invalid: \n");
 	for (int i = 0; i < AXIS; ++i) {
 		struct slot s = make_slot(i, 0);
-		play_move(b, make_move(create_tile(edges[3]), s, 0));
+		play_move(b, make_move(tiles[3], s, 0));
 	}
 
 	printf("\nLet's see what slots are placeable.\n");
 	print_placeable_slots(b);
 	printf("\nPlay the center. Valid starting move.\n");
-	b = play_move(b,
-		make_move(create_tile(edges[3]), make_slot(AXIS/2,AXIS/2), 0));
+	const unsigned int mid = AXIS / 2; /* BAD, REFACTOR. FIXME */
+	b = play_move(b, make_move(tiles[3], make_slot(mid, mid), 0));
 	print_board(b);
 
 	printf("\nAnd now what slots are placeable?\n");
+	print_placeable_slots(b);
+
+	printf("\nLet's test the tile validator.\n");
+	b = play_move(b, make_move(tiles[2], make_slot(mid, mid + 1), 0));
+	print_board(b);
+	print_placeable_slots(b);
+
+	b = play_move(b, make_move(tiles[3], make_slot(mid, mid + 1), 0));
+	print_board(b);
 	print_placeable_slots(b);
 
 	return 0;
