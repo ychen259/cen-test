@@ -36,16 +36,21 @@ void print_board(struct board b)
 			off += (13 - 1);
 		}
 	}
-	printf("%s\n", res[0]);
 
-	/* TODO: Pretty print the board in NxN format. */
-#if 0
-	for (int i = 0; i < AXIS; ++i) {
-		for (int j = 0; j < AXIS; ++j) {
-			memcpy(res[1], res[0] + i * (AXIS * 12) + 12 * j, 12);
+	/* Pretty print the board in NxN format. */
+	for (int i = 0, off = 0; i < AXIS; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			for (int k = 0; k < AXIS; ++k) {
+				size_t in_offset = (i * AXIS + k) * 12 + 4 * j;
+				memcpy(res[1] + off, res[0] + in_offset, 4);
+				off += 4;
+				res[1][off - 1] = '\t';
+			}
+			res[1][off - 1] = '\n';
 		}
 	}
-#endif
+	res[1][off + 1] = '\0';
+	printf("%s\n\n", res[1]);
 }
 
 static unsigned index_slot(struct slot s)
