@@ -215,6 +215,13 @@ int main(void)
 		printf(string[i], buffer);
 	}
 
+	printf("\nTile Rotations: \n");
+	for (int i = 0; i < 4; ++i) {
+		print_tile(rotate_tile(create_tile(edges[4]), i), buffer);
+		printf("%d rotation:\n%s\n", i, buffer);
+
+	}
+
 	printf("\nTesting board creation. All Null.\n");
 	struct board b = make_board();
 	print_board(b);
