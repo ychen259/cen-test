@@ -26,19 +26,22 @@ struct board make_board(void)
 	return b;
 }
 
+static unsigned index_slot(struct slot s)
+{
+	return AXIS * s.x + s.y;
+}
+
 void print_board(struct board b)
 {
 	char res[2][(AXIS * AXIS) * (13 - 1) + 1]; /* Null terminators */
 	char buf[13];
-	size_t off = 0;
-	for (int i = 0; i < AXIS; ++i) {
+	for (size_t i = 0; i < AXIS; ++i) {
 		for (int j = 0; j < AXIS; ++j) {
-			print_tile(b.tiles[i * AXIS + j], res[0] + off);
-			off += (13 - 1);
+			size_t ind = index_slot(make_slot(i, j));
+			print_tile(b.tiles[ind], &res[0][ind * (13 - 1)]);
 		}
 	}
 
-#if 0
 	/* Pretty print the board in NxN format. */
 	for (int i = 0, off = 0; i < AXIS; ++i) {
 		for (int j = 0; j < 3; ++j) {
@@ -51,26 +54,22 @@ void print_board(struct board b)
 			res[1][off - 1] = '\n';
 		}
 	}
-	res[1][off + 1] = '\0';
-#endif
+#if 0
 	/* TODO: Finish refactoring. */
 	for (int i = 0; i < AXIS; ++i) {
 		for (int j = 0; j < AXIS; ++j) {
-			print_tile(b.tiles[i * AXIS + j], buf);
+			size_t ind = index_slot(make_slot(i, j));
+			print_tile(b.tiles[ind], buf);
 			for (int k = 1; k <= 3; ++k) {
 				buf[4 * k - 1] = '\t';
 			}
-			memcpy(&res[1][(i * AXIS + j) * 12], buf, 12);
+			memcpy(&res[1][ind * (13 - 1)], buf, (13 - 1));
 		}
-		res[1][(i * AXIS + AXIS) * 12 - 1] = '\n';
+		res[1][(i * AXIS + AXIS) * (13 - 1) - 1] = '\n';
 	}
+#endif
 	res[1][(AXIS * AXIS) * (13 - 1)] = '\0';
 	printf("%s\n\n", res[1]);
-}
-
-static unsigned index_slot(struct slot s)
-{
-	return AXIS * s.x + s.y;
 }
 
 static int slot_placeable(struct board b, struct slot s)
