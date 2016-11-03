@@ -6,6 +6,10 @@
 #include <string.h>	/* memcpy() */
 #include "edge.h"	/* edges. */
 
+#define TILE_LINE_LEN 4
+#define TILE_LINES 3
+#define TILE_LEN TILE_LINE_LEN * TILE_LINES + 1 /* Null terminator */
+
 struct tile {
 	enum edge edges[5]; /* Top, Right, Bottom, Left, Center. */
 };
