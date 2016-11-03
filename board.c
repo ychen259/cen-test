@@ -97,14 +97,20 @@ static void print_placeable_slots(struct board b)
 	return;
 }
 
-struct move make_move(struct tile t, struct slot s, int rotation)
+static struct board update_slot_spots(struct board b, struct slot s)
 {
-	struct move m = {
-		.tile = t,
-		.slot = s,
-		.rotation = rotation
+	/* Check the slots above, left, right, and below. */
+	struct slot adj[4] = { 
+		make_slot(s.x, s.y - 1), make_slot(s.x - 1, s.y),
+		make_slot(s.x + 1, s.y), make_slot(s.x, s.y + 1)
 	};
-	return m;
+	b = remove_placeable_slot(b, s);
+	for (int i = 0; i < 4; ++i) {
+		if (slot_empty(b, adj[i]) && slot_on_board(adj[i])) {
+			b = add_placeable_slot(b, adj[i]);
+		}
+	}
+	return b;
 }
 
 struct board make_board(void)
@@ -143,22 +149,6 @@ void print_board(struct board b)
 	}
 	res[(AXIS * AXIS) * (TILE_LEN - 1)] = '\0';
 	printf("%s\n\n", res);
-}
-
-struct board update_slot_spots(struct board b, struct slot s)
-{
-	/* Check the slots above, left, right, and below. */
-	struct slot adj[4] = { 
-		make_slot(s.x, s.y - 1), make_slot(s.x - 1, s.y),
-		make_slot(s.x + 1, s.y), make_slot(s.x, s.y + 1)
-	};
-	b = remove_placeable_slot(b, s);
-	for (int i = 0; i < 4; ++i) {
-		if (slot_empty(b, adj[i]) && slot_on_board(adj[i])) {
-			b = add_placeable_slot(b, adj[i]);
-		}
-	}
-	return b;
 }
 
 static int validate_move(struct board b, struct move m)

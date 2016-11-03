@@ -1,6 +1,8 @@
 CFLAGS=-std=c99 -flto -Wall -Wextra -pedantic -O2
-all: board.c board.h tile.o slot.o
-	$(CC) $(CFLAGS) -o test board.c tile.o slot.o
+all: board.c board.h tile.o slot.o move.o
+	$(CC) $(CFLAGS) -o test board.c tile.o slot.o move.o
+move.o: move.c move.h
+	$(CC) ${CFLAGS} -c -o move.o move.c
 tile.o: tile.c tile.h
 	$(CC) ${CFLAGS} -c -o tile.o tile.c
 slot.o: slot.c slot.h
