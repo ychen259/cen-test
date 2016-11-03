@@ -11,6 +11,7 @@ struct board {
 	struct tile tiles[AXIS*AXIS];
 	struct slot slot_spots[AXIS*AXIS];
 	unsigned int sps; /* # of open slot spots (placeable slots) */
+	char column_terminators[AXIS];
 };
 
 struct board make_board(void)
@@ -23,6 +24,9 @@ struct board make_board(void)
 	for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
 		b.tiles[i] = create_tile(edges);
 	}
+	/* Tab between columns except for the last one, which newlines. */
+	memset(b.column_terminators, '\t', AXIS - 1);
+	b.column_terminators[AXIS - 1] = '\n';
 	return b;
 }
 
@@ -33,43 +37,22 @@ static unsigned index_slot(struct slot s)
 
 void print_board(struct board b)
 {
-	char res[2][(AXIS * AXIS) * (13 - 1) + 1]; /* Null terminators */
+	char res[(AXIS * AXIS) * (13 - 1) + 1]; /* Null terminators */
 	char buf[13];
-	for (size_t i = 0; i < AXIS; ++i) {
-		for (int j = 0; j < AXIS; ++j) {
-			size_t ind = index_slot(make_slot(i, j));
-			print_tile(b.tiles[ind], &res[0][ind * (13 - 1)]);
-		}
-	}
 
 	/* Pretty print the board in NxN format. */
-	for (int i = 0, off = 0; i < AXIS; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			for (int k = 0; k < AXIS; ++k) {
-				size_t in_offset = (i * AXIS + k) * 12 + 4 * j;
-				memcpy(res[1] + off, res[0] + in_offset, 4);
-				off += 4;
-				res[1][off - 1] = '\t';
-			}
-			res[1][off - 1] = '\n';
-		}
-	}
-#if 0
-	/* TODO: Finish refactoring. */
 	for (int i = 0; i < AXIS; ++i) {
 		for (int j = 0; j < AXIS; ++j) {
-			size_t ind = index_slot(make_slot(i, j));
-			print_tile(b.tiles[ind], buf);
-			for (int k = 1; k <= 3; ++k) {
-				buf[4 * k - 1] = '\t';
+			print_tile(b.tiles[index_slot(make_slot(i, j))], buf);
+			for (int k = 0; k < 3; ++k) {
+				const size_t ind = ((i * 3 + k) * AXIS + j) * 4;
+				buf[(k + 1) * 4 - 1] = b.column_terminators[j];
+				memcpy(&res[ind], &buf[4 * k], 4);
 			}
-			memcpy(&res[1][ind * (13 - 1)], buf, (13 - 1));
 		}
-		res[1][(i * AXIS + AXIS) * (13 - 1) - 1] = '\n';
 	}
-#endif
-	res[1][(AXIS * AXIS) * (13 - 1)] = '\0';
-	printf("%s\n\n", res[1]);
+	res[(AXIS * AXIS) * (13 - 1)] = '\0';
+	printf("%s\n\n", res);
 }
 
 static int slot_placeable(struct board b, struct slot s)
@@ -129,29 +112,23 @@ static int slot_on_board(struct slot s)
 
 static struct board add_placeable_slot(struct board b, struct slot s)
 {
-	size_t i = 0;
-	while (i < b.sps && compare_slots(s, b.slot_spots[i]) > 0) {
-		i++;
+	size_t i;
+	struct slot *spots = b.slot_spots;
+	for (i = 0; i < b.sps && compare_slots(s, spots[i]) > 0; ++i) {}
+	if (i < b.sps) { /* Make room for the element (Sorted insert). */
+		memmove(&b.slot_spots[i + 1], &spots[i], sizeof(s) * b.sps - i);
 	}
-	if (i < b.sps) { /* Sorted insert. */
-		memmove(&b.slot_spots[i + 1], &b.slot_spots[i],
-				sizeof(s) * b.sps - i);
-		b.slot_spots[i] = s;
-	} else {
-		b.slot_spots[i] = s;
-	}
+	b.slot_spots[i] = s;
 	b.sps++;
 	return b;
 }
 
 static struct board remove_placeable_slot(struct board b, struct slot s)
 {
-	size_t i = 0;
-	while (i < b.sps && compare_slots(s, b.slot_spots[i]) < 0) {
-		i++;
-	}
-	memmove(&b.slot_spots[i], &b.slot_spots[i + 1], sizeof(s)*(b.sps - i));
-	b.sps--;
+	size_t i;
+	struct slot *spots = b.slot_spots;
+	for (i = 0; i < b.sps && compare_slots(s, spots[i]) > 0; ++i) {}
+	memmove(&spots[i], &spots[i + 1], sizeof(s) * (b.sps-- - i));
 	return b;
 }
 
@@ -197,6 +174,7 @@ struct move make_move(struct tile t, struct slot s, int rotation)
 	return m;
 }
 
+/* TODO: Split into two functions. */
 static int validate_move(struct board b, struct move m)
 {
 	if (!slot_placeable(b, m.slot)) {
