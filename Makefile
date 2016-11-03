@@ -1,4 +1,4 @@
-CFLAGS=-std=c99 -Wall -Wextra -pedantic -O2
+CFLAGS=-std=c99 -flto -Wall -Wextra -pedantic -O2
 all: board.c tile.o slot.o
 	$(CC) $(CFLAGS) -o test board.c tile.o slot.o
 tile.o: tile.c tile.h

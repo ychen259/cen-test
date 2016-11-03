@@ -30,28 +30,30 @@ struct board make_board(void)
 	return b;
 }
 
-static unsigned index_slot(struct slot s)
+static size_t index_slot(struct slot s)
 {
 	return AXIS * s.x + s.y;
 }
 
 void print_board(struct board b)
 {
-	char res[(AXIS * AXIS) * (13 - 1) + 1]; /* Null terminators */
-	char buf[13];
+	const size_t cnt = TILE_LINES;
+	const size_t len = TILE_LINE_LEN;
+	char res[(AXIS * AXIS) * (TILE_LEN - 1) + 1]; /* Null terminators */
+	char buf[TILE_LEN];
 
 	/* Pretty print the board in NxN format. */
-	for (int i = 0; i < AXIS; ++i) {
-		for (int j = 0; j < AXIS; ++j) {
+	for (size_t i = 0; i < AXIS; ++i) {
+		for (size_t j = 0; j < AXIS; ++j) {
 			print_tile(b.tiles[index_slot(make_slot(i, j))], buf);
-			for (int k = 0; k < 3; ++k) {
-				const size_t ind = ((i * 3 + k) * AXIS + j) * 4;
-				buf[(k + 1) * 4 - 1] = b.column_terminators[j];
-				memcpy(&res[ind], &buf[4 * k], 4);
+			for (size_t k = 0; k < cnt; ++k) {
+				const size_t ind = ((i *cnt +k) *AXIS +j) *len;
+				buf[(k + 1) *len - 1] = b.column_terminators[j];
+				memcpy(&res[ind], &buf[len * k], len);
 			}
 		}
 	}
-	res[(AXIS * AXIS) * (13 - 1)] = '\0';
+	res[(AXIS * AXIS) * (TILE_LEN - 1)] = '\0';
 	printf("%s\n\n", res);
 }
 
@@ -174,7 +176,6 @@ struct move make_move(struct tile t, struct slot s, int rotation)
 	return m;
 }
 
-/* TODO: Split into two functions. */
 static int validate_move(struct board b, struct move m)
 {
 	if (!slot_placeable(b, m.slot)) {
@@ -189,11 +190,11 @@ static int validate_move(struct board b, struct move m)
 		make_slot(m.slot.x - 1, m.slot.y)	/* left*/
 	};
 	for (unsigned int i = 0; i < sizeof(adj); ++i) { /* Need wrapping */
-		struct slot adjs = adj[i];
-		if (!slot_on_board(adjs)) { /* ignore if not on board. */
+		if (!slot_on_board(adj[i])) { /* ignore if not on board. */
 			continue;
 		}
-		enum edge pair = b.tiles[index_slot(adjs)].edges[(i + 2) % 4];
+		/* The (i + 2) % 4 math here is a bit evil, but it works. */
+		enum edge pair = b.tiles[index_slot(adj[i])].edges[(i + 2) % 4];
 		if (pair == NONE) {
 			continue; /* Empty tiles match with everything. */
 		}
@@ -218,7 +219,7 @@ struct board play_move(struct board b, struct move m)
 
 int main(void)
 {
-	char buffer[13];
+	char buffer[TILE_LEN];
 	enum edge edges[5][5] = {
 		{ NONE, NONE, NONE, NONE, NONE },
 		{ ROAD, ROAD, ROAD, ROAD, ROAD },
