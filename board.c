@@ -121,7 +121,7 @@ struct board make_board(void)
        b.slot_spots[0] = make_slot(mid, mid);
        b.sps = 1;
        for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
-		b.tiles[i] = create_tile(edges);
+		b.tiles[i] = make_tile(edges);
        }
        /* Tab between columns except for the last one, which newlines. */
        memset(b.column_terminators, '\t', AXIS - 1);
@@ -204,11 +204,11 @@ int main(void)
 		{ CITY, FIELD, ROAD, CITY, ROAD }
 	};
 	struct tile tiles[5] = {
-		create_tile(edges[0]),
-		create_tile(edges[1]),
-		create_tile(edges[2]),
-		create_tile(edges[3]),
-		create_tile(edges[4])
+		make_tile(edges[0]),
+		make_tile(edges[1]),
+		make_tile(edges[2]),
+		make_tile(edges[3]),
+		make_tile(edges[4])
 	};
 
 	const char string[5][30] = {
