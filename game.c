@@ -74,56 +74,45 @@ static void init_deck(struct tile deck[TILE_COUNT])
 		make_tile((enum edge[5]){CITY, CITY, CITY, CITY, CITY}, SHIELD);
 	deck[ind++] =
 		make_tile((enum edge[5]){ROAD, ROAD, ROAD, ROAD, ROAD}, NONE);
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 4; ++i) {
+		const enum attribute a[4] = {NONE, NONE, NONE, SHIELD};
 		deck[ind++] =
 			make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY},
-			NONE);
+			a[i]);
 	}
-	deck[ind++] =
-		make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY},SHIELD);
-	deck[ind++] =
-		make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY}, NONE);
-	for (int i = 0; i < 2; ++i) {
+	for (int i = 0; i < 3; ++i) {
+		const enum attribute a[3] = {NONE, SHIELD, SHIELD};
 		deck[ind++] =
 			make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY},
-			SHIELD);
+			a[i]);
 	}
 	for (int i = 0; i < 4; ++i) {
 		deck[ind++] =
 			make_tile((enum edge[5]){FIELD, ROAD, ROAD, ROAD, ROAD},
 			NONE);
 	}
-	deck[ind++] =
-		make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY, CITY}, NONE);
 	for (int i = 0; i < 2; ++i) {
+		const enum attribute a[3] = {NONE, SHIELD, SHIELD};
 		deck[ind++] =
 			make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY,CITY},
-			SHIELD);
+			a[i]);
 	}
 	for (int i = 0; i < 8; ++i) {
 		deck[ind++] =
 			make_tile((enum edge[5]){ROAD, FIELD, ROAD, FIELD,ROAD},
 			NONE);
 	}
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 5; ++i) {
+		const enum attribute a[5] = {NONE, NONE, NONE, SHIELD, SHIELD};
 		deck[ind++] =
 			make_tile((enum edge[5]){CITY, FIELD, FIELD, CITY,CITY},
-			NONE);
+			a[i]);
 	}
-	for (int i = 0; i < 2; ++i) {
-		deck[ind++] =
-			make_tile((enum edge[5]){CITY,FIELD,FIELD,CITY,FIELD},
-			SHIELD);
-	}
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 5; ++i) {
+		const enum attribute a[5] = {NONE, NONE, NONE, SHIELD, SHIELD};
 		deck[ind++] =
 			make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD},
-			NONE);
-	}
-	for (int i = 0; i < 2; ++i) {
-		deck[ind++] =
-			make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD},
-			SHIELD);
+			a[i]);
 	}
 	for (int i = 0; i < 9; ++i) {
 		deck[ind++] =
