@@ -75,15 +75,11 @@ static void init_deck(struct tile deck[TILE_COUNT])
 	deck[ind++] =
 		make_tile((enum edge[5]){ROAD, ROAD, ROAD, ROAD, ROAD}, NONE);
 	for (int i = 0; i < 4; ++i) {
-		const enum attribute a[4] = {NONE, NONE, NONE, SHIELD};
+		const enum attribute a[7] =
+			{NONE, NONE, NONE, SHIELD, NONE, SHIELD, SHIELD};
+		const enum edge b[7] = {FIELD,FIELD,FIELD,FIELD,ROAD,ROAD,ROAD};
 		deck[ind++] =
-			make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY},
-			a[i]);
-	}
-	for (int i = 0; i < 3; ++i) {
-		const enum attribute a[3] = {NONE, SHIELD, SHIELD};
-		deck[ind++] =
-			make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY},
+			make_tile((enum edge[5]){CITY, CITY, b[i], CITY, CITY},
 			a[i]);
 	}
 	for (int i = 0; i < 4; ++i) {
@@ -91,7 +87,7 @@ static void init_deck(struct tile deck[TILE_COUNT])
 			make_tile((enum edge[5]){FIELD, ROAD, ROAD, ROAD, ROAD},
 			NONE);
 	}
-	for (int i = 0; i < 2; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		const enum attribute a[3] = {NONE, SHIELD, SHIELD};
 		deck[ind++] =
 			make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY,CITY},
@@ -102,16 +98,11 @@ static void init_deck(struct tile deck[TILE_COUNT])
 			make_tile((enum edge[5]){ROAD, FIELD, ROAD, FIELD,ROAD},
 			NONE);
 	}
-	for (int i = 0; i < 5; ++i) {
+	for (int i = 0; i < 10; ++i) {
 		const enum attribute a[5] = {NONE, NONE, NONE, SHIELD, SHIELD};
+		const enum edge b[2] = {ROAD, FIELD};
 		deck[ind++] =
-			make_tile((enum edge[5]){CITY, FIELD, FIELD, CITY,CITY},
-			a[i]);
-	}
-	for (int i = 0; i < 5; ++i) {
-		const enum attribute a[5] = {NONE, NONE, NONE, SHIELD, SHIELD};
-		deck[ind++] =
-			make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD},
+			make_tile((enum edge[5]){CITY,b[i%2],b[i%2],CITY,CITY},
 			a[i]);
 	}
 	for (int i = 0; i < 9; ++i) {
