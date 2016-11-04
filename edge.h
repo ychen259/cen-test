@@ -2,7 +2,7 @@
 #define EDGE_H_
 
 enum edge {
-	NONE = 0,
+	EMPTY = 0,
 	CITY = 1,
 	FIELD = 2,
 	ROAD = 3 

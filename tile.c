@@ -1,8 +1,9 @@
 #include "tile.h"
 
-struct tile make_tile(const enum edge edges[5])
+struct tile make_tile(const enum edge edges[5], enum attribute a)
 {
 	struct tile t;
+	t.attribute = a;
 	memcpy(&t.edges, edges, sizeof(edges[0]) * 5);
 	return t;
 }
@@ -16,7 +17,7 @@ struct tile rotate_tile(const struct tile old, const int rotation)
 	for (unsigned int i = 4; i > 0; --i) { /* Need unsigned for wrapping */
 		new[i - 1] = old.edges[(i - 1 - rotation) % 4];
 	}
-	return make_tile(new);
+	return make_tile(new, old.attribute);
 }
 
 char *print_tile(const struct tile t, char b[TILE_LEN])

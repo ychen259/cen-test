@@ -67,68 +67,113 @@ static void init_deck(struct tile deck[TILE_COUNT])
 	/* Tileset: http://russcon.org/RussCon/carcassonne/tiles.html */
 	/* TODO: Refactor so that this fits in 80 columns. */
 	size_t ind = 0;
-	deck[ind++] = make_tile((enum edge[5]){CITY, ROAD, FIELD, ROAD, ROAD}); /* start tile, must be first. */
-	deck[ind++] = make_tile((enum edge[5]){CITY, CITY, CITY, CITY, CITY});/* shield */
-	deck[ind++] = make_tile((enum edge[5]){ROAD, ROAD, ROAD, ROAD, ROAD});
+	deck[ind++] = /* start tile, must be first. */
+		make_tile((enum edge[5]){CITY, ROAD, FIELD, ROAD, ROAD},
+		NONE);
+	deck[ind++] =
+		make_tile((enum edge[5]){CITY, CITY, CITY, CITY, CITY}, SHIELD);
+	deck[ind++] =
+		make_tile((enum edge[5]){ROAD, ROAD, ROAD, ROAD, ROAD}, NONE);
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY},
+			NONE);
 	}
-	deck[ind++] = make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY});/* shield */
-	deck[ind++] = make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY});
-	for (int i = 0; i < 2; ++i) { /* shield */
-		deck[ind++] = make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY});
+	deck[ind++] =
+		make_tile((enum edge[5]){CITY, CITY, FIELD, CITY, CITY},SHIELD);
+	deck[ind++] =
+		make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY}, NONE);
+	for (int i = 0; i < 2; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY, CITY, ROAD, CITY, CITY},
+			SHIELD);
 	}
 	for (int i = 0; i < 4; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){FIELD, ROAD, ROAD, ROAD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){FIELD, ROAD, ROAD, ROAD, ROAD},
+			NONE);
 	}
-	deck[ind++] = make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY, CITY});
-	for (int i = 0; i < 2; ++i) { /* shield */
-		deck[ind++] = make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY, CITY});
+	deck[ind++] =
+		make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY, CITY}, NONE);
+	for (int i = 0; i < 2; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY,CITY},
+			SHIELD);
 	}
 	for (int i = 0; i < 8; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){ROAD, FIELD, ROAD, FIELD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){ROAD, FIELD, ROAD, FIELD,ROAD},
+			NONE);
 	}
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, FIELD, FIELD, CITY, CITY});
-	}
-	for (int i = 0; i < 2; ++i) { /* shield */
-		deck[ind++] = make_tile((enum edge[5]){CITY, FIELD, FIELD, CITY, FIELD});
-	}
-	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD});
-	}
-	for (int i = 0; i < 2; ++i) { /* shield */
-		deck[ind++] = make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD});
-	}
-	for (int i = 0; i < 9; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){FIELD, FIELD, ROAD, ROAD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY, FIELD, FIELD, CITY,CITY},
+			NONE);
 	}
 	for (int i = 0; i < 2; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, CITY, FIELD, FIELD, FIELD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,FIELD,FIELD,CITY,FIELD},
+			SHIELD);
 	}
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){FIELD, CITY, FIELD, CITY, FIELD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD},
+			NONE);
 	}
-	for (int i = 0; i < 2; ++i) { /* monastery */
-		deck[ind++] = make_tile((enum edge[5]){FIELD, FIELD, ROAD, FIELD, FIELD});
+	for (int i = 0; i < 2; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY, ROAD, ROAD, CITY, ROAD},
+			SHIELD);
 	}
-	for (int i = 0; i < 4; ++i) { /* monastery */
-		deck[ind++] = make_tile((enum edge[5]){FIELD, FIELD, FIELD, FIELD, FIELD});
+	for (int i = 0; i < 9; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){FIELD, FIELD, ROAD, ROAD,ROAD},
+			NONE);
+	}
+	for (int i = 0; i < 2; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,CITY,FIELD,FIELD,FIELD},
+			NONE);
+	}
+	for (int i = 0; i < 3; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){FIELD,CITY,FIELD,CITY,FIELD},
+			NONE);
+	}
+	for (int i = 0; i < 2; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){FIELD,FIELD,ROAD,FIELD,FIELD},
+			MONASTERY);
+	}
+	for (int i = 0; i < 4; ++i) {
+		deck[ind++] =
+			make_tile((enum edge[5]){FIELD,FIELD,FIELD,FIELD,FIELD},
+			MONASTERY);
 	}
 	for (int i = 0; i < 5; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, FIELD, FIELD, FIELD, FIELD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,FIELD,FIELD,FIELD,FIELD},
+			NONE);
 	}
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, ROAD, ROAD, FIELD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,ROAD,ROAD,FIELD,ROAD},
+			NONE);
 	}
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, FIELD, ROAD, ROAD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,FIELD,ROAD,ROAD,ROAD},
+			NONE);
 	}
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, ROAD, ROAD, ROAD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,ROAD,ROAD,ROAD,ROAD},
+			NONE);
 	}
 	for (int i = 0; i < 3; ++i) {
-		deck[ind++] = make_tile((enum edge[5]){CITY, ROAD, FIELD, ROAD, ROAD});
+		deck[ind++] =
+			make_tile((enum edge[5]){CITY,ROAD,FIELD,ROAD,ROAD},
+			NONE);
 	}
 	return;
 }

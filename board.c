@@ -45,7 +45,7 @@ static int slot_empty(struct board b, struct slot s)
 {
 	struct tile t = b.tiles[index_slot(s)];
 	for (int i = 0; i < 5; ++i) {
-		if (t.edges[i] != NONE) {
+		if (t.edges[i] != EMPTY) {
 			return 0;
 		}
 	}
@@ -116,12 +116,12 @@ static struct board update_slot_spots(struct board b, struct slot s)
 struct board make_board(void)
 {
        struct board b;
-       enum edge edges[5] = { NONE, NONE, NONE, NONE, NONE };
+       enum edge edges[5] = { EMPTY, EMPTY, EMPTY, EMPTY, EMPTY };
        const unsigned int mid = (AXIS - 1) / 2; /* Must start in center. */
        b.slot_spots[0] = make_slot(mid, mid);
        b.sps = 1;
        for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
-		b.tiles[i] = make_tile(edges);
+		b.tiles[i] = make_tile(edges, NONE);
        }
        /* Tab between columns except for the last one, which newlines. */
        memset(b.column_terminators, '\t', AXIS - 1);
@@ -170,7 +170,7 @@ static int validate_move(struct board b, struct move m)
 		}
 		/* The (i + 2) % 4 math here is a bit evil, but it works. */
 		enum edge pair = b.tiles[index_slot(adj[i])].edges[(i + 2) % 4];
-		if (pair == NONE) {
+		if (pair == EMPTY) {
 			continue; /* Empty tiles match with everything. */
 		}
 		if (pair != m.tile.edges[i]) { /* Corresponding don't match. */
@@ -197,18 +197,18 @@ int main(void)
 	char buffer[TILE_LEN];
 	char board_buffer[BOARD_LEN];
 	enum edge edges[5][5] = {
-		{ NONE, NONE, NONE, NONE, NONE },
+		{ EMPTY, EMPTY, EMPTY, EMPTY, EMPTY },
 		{ ROAD, ROAD, ROAD, ROAD, ROAD },
 		{ FIELD, FIELD, FIELD, FIELD, FIELD },
 		{ CITY, CITY, CITY, CITY, CITY },
 		{ CITY, FIELD, ROAD, CITY, ROAD }
 	};
 	struct tile tiles[5] = {
-		make_tile(edges[0]),
-		make_tile(edges[1]),
-		make_tile(edges[2]),
-		make_tile(edges[3]),
-		make_tile(edges[4])
+		make_tile(edges[0], NONE),
+		make_tile(edges[1], NONE),
+		make_tile(edges[2], NONE),
+		make_tile(edges[3], NONE),
+		make_tile(edges[4], NONE)
 	};
 
 	const char string[5][30] = {
