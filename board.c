@@ -129,11 +129,10 @@ struct board make_board(void)
        return b;
 }
 
-void print_board(struct board b)
+char *print_board(struct board b, char res[BOARD_LEN])
 {
 	const size_t cnt = TILE_LINES;
 	const size_t len = TILE_LINE_LEN;
-	char res[(AXIS * AXIS) * (TILE_LEN - 1) + 1]; /* Null terminators */
 	char buf[TILE_LEN];
 
 	/* Pretty print the board in NxN format. */
@@ -147,10 +146,11 @@ void print_board(struct board b)
 			}
 		}
 	}
-	res[(AXIS * AXIS) * (TILE_LEN - 1)] = '\0';
-	printf("%s\n\n", res);
+	res[BOARD_LEN - 1] = '\0';
+	return res;
 }
 
+/* TODO: Switch int error codes to error enums for cleanliness. */
 static int validate_move(struct board b, struct move m)
 {
 	if (!slot_placeable(b, m.slot)) {
@@ -195,6 +195,7 @@ struct board play_move(struct board b, struct move m)
 int main(void)
 {
 	char buffer[TILE_LEN];
+	char board_buffer[BOARD_LEN];
 	enum edge edges[5][5] = {
 		{ NONE, NONE, NONE, NONE, NONE },
 		{ ROAD, ROAD, ROAD, ROAD, ROAD },
@@ -211,28 +212,27 @@ int main(void)
 	};
 
 	const char string[5][30] = {
-		"\nEmpty tile: \n%s\n",
-		"\nAll Road tile: \n%s\n",
-		"\nAll Field tile: \n%s\n",
-		"\nAll City tile: \n%s\n",
-		"\nMixed tile: \n%s\n"
+		"\nEmpty tile:",
+		"\nAll Road tile:",
+		"\nAll Field tile:",
+		"\nAll City tile:",
+		"\nMixed tile:"
 	};
 
 	printf("Testing different tile types.\n");
 	for (int i = 0; i < 5; ++i) {
-		print_tile(tiles[i], buffer);
-		printf(string[i], buffer);
+		printf("%s\n%s\n", string[i], print_tile(tiles[i], buffer));
 	}
 
 	printf("\nTile Rotations: \n");
 	for (int i = 0; i < 4; ++i) {
-		print_tile(rotate_tile(tiles[4], i), buffer);
-		printf("%d rotation:\n%s\n", i, buffer);
+		printf("%d rotation:\n%s\n", i,
+			print_tile(rotate_tile(tiles[4], i), buffer));
 	}
 
 	printf("\nTesting board creation. All Null.\n");
 	struct board b = make_board();
-	print_board(b);
+	printf("%s\n", print_board(b, board_buffer));
 
 	printf("\nTop row city. All invalid: \n");
 	for (int i = 0; i < AXIS; ++i) {
@@ -245,18 +245,18 @@ int main(void)
 	printf("\nPlay the center. Valid starting move.\n");
 	const unsigned int mid = AXIS / 2; /* BAD, REFACTOR. FIXME */
 	b = play_move(b, make_move(tiles[3], make_slot(mid, mid), 0));
-	print_board(b);
+	printf("%s\n", print_board(b, board_buffer));
 
 	printf("\nAnd now what slots are placeable?\n");
 	print_placeable_slots(b);
 
 	printf("\nLet's test the tile validator.\n");
 	b = play_move(b, make_move(tiles[2], make_slot(mid, mid + 1), 0));
-	print_board(b);
+	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);
 
 	b = play_move(b, make_move(tiles[3], make_slot(mid, mid + 1), 0));
-	print_board(b);
+	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);
 
 	return 0;

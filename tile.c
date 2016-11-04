@@ -19,7 +19,7 @@ struct tile rotate_tile(const struct tile old, const int rotation)
 	return create_tile(new);
 }
 
-void print_tile(const struct tile t, char *b)
+char *print_tile(const struct tile t, char b[TILE_LEN])
 {
 	/* Our array stores in clockwise order starting at the top.
 	 * So the tile looks like this: (indexes)
@@ -42,5 +42,5 @@ void print_tile(const struct tile t, char *b)
 				b[1] = c[t.edges[0]];
 	b[4] = c[t.edges[3]];	b[5] = c[t.edges[4]]; b[6] = c[t.edges[1]];
 				b[9] = c[t.edges[2]];
-	return;
+	return b;
 }

@@ -16,6 +16,6 @@ struct tile {
 
 struct tile create_tile(const enum edge edges[5]);
 struct tile rotate_tile(const struct tile old, const int rotation);
-void print_tile(struct tile t, char *b);
+char *print_tile(struct tile t, char b[TILE_LEN]);
 
 #endif
