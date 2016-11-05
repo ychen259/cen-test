@@ -1,22 +1,8 @@
-#include <stddef.h>	/* size_t */
-#include <math.h>	/* round() */
-#include <time.h>	/* clock_gettime() */
-#include <assert.h>	/* assert() */
+#include "game.h"
 
-#include "limits.h"
-#include "tile.h"
-#include "mt19937-64.h"
-
-#define TILE_COUNT 72
-
-struct game {
-	int graphs[100];
-	size_t graphs_used;
-	struct tile tile_deck[TILE_COUNT];
-};
-
-static void init_deck(struct tile deck[TILE_COUNT]);
+static size_t rand_bound(size_t low, size_t high);
 static void shuffle_tiles(struct tile *a, size_t top);
+static void init_deck(struct tile deck[TILE_COUNT]);
 
 struct game make_game(void)
 {
