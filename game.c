@@ -1,6 +1,7 @@
 #include <stddef.h>	/* size_t */
 #include <math.h>	/* round() */
 #include <time.h>	/* clock_gettime() */
+#include <assert.h>	/* assert() */
 
 #include "limits.h"
 #include "tile.h"
@@ -9,31 +10,22 @@
 #define TILE_COUNT 72
 
 struct game {
-	int graphs[AXIS * AXIS * 4 * 3];
+	int graphs[100];
 	size_t graphs_used;
 	struct tile tile_deck[TILE_COUNT];
-	size_t draw_order[TILE_COUNT];
 };
 
 static void init_deck(struct tile deck[TILE_COUNT]);
-static void shuffle_indices(size_t *a, size_t top);
-static void init_indices(size_t *a, size_t top);
+static void shuffle_tiles(struct tile *a, size_t top);
 
 struct game make_game(void)
 {
 	struct game g;
 	init_deck(g.tile_deck);
-	init_indices(g.draw_order, TILE_COUNT);
 	/* first index is required to be 0 (have to start with start tile). */
-	shuffle_indices(&g.draw_order[1], TILE_COUNT - 1);
+	shuffle_tiles(&g.tile_deck[1], TILE_COUNT - 1);
+	g.graphs_used = 0;
 	return g;
-}
-
-static void init_indices(size_t *a, size_t top)
-{
-	for (size_t i = 0; i < top; ++i) {
-		a[i] = i;
-	}
 }
 
 static size_t rand_bound(size_t low, size_t high)
@@ -48,7 +40,7 @@ static size_t rand_bound(size_t low, size_t high)
 /* Modern Fisher-Yates per Wikipedia.
  * /wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
 */
-static void shuffle_indices(size_t *a, size_t top)
+static void shuffle_tiles(struct tile *a, size_t top)
 {
 	struct timespec tp;
 	clock_gettime(CLOCK_REALTIME, &tp);
@@ -56,7 +48,7 @@ static void shuffle_indices(size_t *a, size_t top)
 
 	for (size_t i = top - 1; i > 1; --i) {
 		size_t j = rand_bound(0, i);
-		size_t swap = a[i];
+		struct tile swap = a[i];
 		a[i] = a[j];
 		a[j] = swap;
 	}
@@ -74,7 +66,7 @@ static void init_deck(struct tile deck[TILE_COUNT])
 		make_tile((enum edge[5]){CITY, CITY, CITY, CITY, CITY}, SHIELD);
 	deck[ind++] =
 		make_tile((enum edge[5]){ROAD, ROAD, ROAD, ROAD, ROAD}, NONE);
-	for (int i = 0; i < 4; ++i) {
+	for (int i = 0; i < 7; ++i) {
 		const enum attribute a[7] =
 			{NONE, NONE, NONE, SHIELD, NONE, SHIELD, SHIELD};
 		const enum edge b[7] = {FIELD,FIELD,FIELD,FIELD,ROAD,ROAD,ROAD};
@@ -155,6 +147,7 @@ static void init_deck(struct tile deck[TILE_COUNT])
 			make_tile((enum edge[5]){CITY,ROAD,FIELD,ROAD,ROAD},
 			NONE);
 	}
+	assert(ind == TILE_COUNT);
 	return;
 }
 
@@ -163,7 +156,7 @@ int main(void)
 	struct game g = make_game();
 	char buf[TILE_LEN];
 	for (int i = 0; i < TILE_COUNT; ++i) {
-		printf("%d:\n%s\n", i + 1, print_tile(g.tile_deck[g.draw_order[i]], buf));
+		printf("%d:\n%s\n", i + 1, print_tile(g.tile_deck[i], buf));
 	}
 	return 0;
 }
