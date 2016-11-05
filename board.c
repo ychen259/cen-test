@@ -194,7 +194,6 @@ int play_move(struct board *b, struct move m)
 static void play_and_check_move(struct board *b, struct move m)
 {
 	int rc;
-	char buf[TILE_LEN];
 	if ((rc = play_move(b, m))) {
 		printf("Invalid move! %d\n", rc);
 	} else {
@@ -254,11 +253,12 @@ int main(void)
 	printf("\nAnd now what slots are placeable?\n");
 	print_placeable_slots(b);
 
-	printf("\nLet's test the tile validator: (%d, %d)\n", mid, mid + 1);
+	printf("\nTest tile validator (should fail): (%d, %d)\n", mid, mid + 1);
 	play_and_check_move(&b,make_move(tiles[2], make_slot(mid, mid + 1), 0));
 	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);
 
+	printf("\nTest tile validator (should pass): (%d, %d)\n", mid, mid + 1);
 	play_and_check_move(&b,make_move(tiles[3], make_slot(mid, mid + 1), 0));
 	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);

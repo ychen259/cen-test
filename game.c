@@ -127,7 +127,7 @@ struct game make_game(void)
 {
 	struct game g;
 	init_deck(g.tile_deck);
-	/* first index is required to be 0 (have to start with start tile). */
+	/* The first index must be 0 (have to start with start tile). */
 	shuffle_tiles(&g.tile_deck[1], TILE_COUNT - 1);
 	g.graphs_used = 0;
 	return g;

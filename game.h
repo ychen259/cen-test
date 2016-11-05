@@ -8,7 +8,7 @@
 
 #include "limits.h"
 #include "tile.h"
-#include "mt19937-64.h"
+#include "rngs/mt19937-64.h" /* Mersenne Twister PRNG. Try PCG if too slow */
 
 #define TILE_COUNT 72
 
