@@ -1,19 +1,5 @@
 #include "game.h"
 
-static size_t rand_bound(size_t low, size_t high);
-static void shuffle_tiles(struct tile *a, size_t top);
-static void init_deck(struct tile deck[TILE_COUNT]);
-
-struct game make_game(void)
-{
-	struct game g;
-	init_deck(g.tile_deck);
-	/* first index is required to be 0 (have to start with start tile). */
-	shuffle_tiles(&g.tile_deck[1], TILE_COUNT - 1);
-	g.graphs_used = 0;
-	return g;
-}
-
 static size_t rand_bound(size_t low, size_t high)
 {
 	size_t r;
@@ -137,12 +123,13 @@ static void init_deck(struct tile deck[TILE_COUNT])
 	return;
 }
 
-int main(void)
+struct game make_game(void)
 {
-	struct game g = make_game();
-	char buf[TILE_LEN];
-	for (int i = 0; i < TILE_COUNT; ++i) {
-		printf("%d:\n%s\n", i + 1, print_tile(g.tile_deck[i], buf));
-	}
-	return 0;
+	struct game g;
+	init_deck(g.tile_deck);
+	/* first index is required to be 0 (have to start with start tile). */
+	shuffle_tiles(&g.tile_deck[1], TILE_COUNT - 1);
+	g.graphs_used = 0;
+	return g;
 }
+

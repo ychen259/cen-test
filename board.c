@@ -113,6 +113,37 @@ static struct board update_slot_spots(struct board b, struct slot s)
 	return b;
 }
 
+/* TODO: Switch int error codes to error enums for cleanliness. */
+static int validate_move(struct board b, struct move m)
+{
+	if (!slot_placeable(b, m.slot)) {
+		fprintf(stderr, "Invalid location for tile.\n");
+		return 1;
+	}
+	/* Check adjacent tiles to make sure edges match. */
+	struct slot adj[4] = {
+		make_slot(m.slot.x, m.slot.y + 1),	/* up */
+		make_slot(m.slot.x + 1, m.slot.y),	/* right */
+		make_slot(m.slot.x, m.slot.y - 1),	/* down */
+		make_slot(m.slot.x - 1, m.slot.y)	/* left*/
+	};
+	for (unsigned int i = 0; i < sizeof(adj); ++i) { /* Need wrapping */
+		if (!slot_on_board(adj[i])) { /* ignore if not on board. */
+			continue;
+		}
+		/* The (i + 2) % 4 math here is a bit evil, but it works. */
+		enum edge pair = b.tiles[index_slot(adj[i])].edges[(i + 2) % 4];
+		if (pair == EMPTY) {
+			continue; /* Empty tiles match with everything. */
+		}
+		if (pair != m.tile.edges[i]) { /* Corresponding don't match. */
+			fprintf(stderr, "Edges don't match.\n");
+			return 1;
+		}
+	}
+	return 0;
+}
+
 struct board make_board(void)
 {
        struct board b;
@@ -148,37 +179,6 @@ char *print_board(struct board b, char res[BOARD_LEN])
 	}
 	res[BOARD_LEN - 1] = '\0';
 	return res;
-}
-
-/* TODO: Switch int error codes to error enums for cleanliness. */
-static int validate_move(struct board b, struct move m)
-{
-	if (!slot_placeable(b, m.slot)) {
-		fprintf(stderr, "Invalid location for tile.\n");
-		return 1;
-	}
-	/* Check adjacent tiles to make sure edges match. */
-	struct slot adj[4] = {
-		make_slot(m.slot.x, m.slot.y + 1),	/* up */
-		make_slot(m.slot.x + 1, m.slot.y),	/* right */
-		make_slot(m.slot.x, m.slot.y - 1),	/* down */
-		make_slot(m.slot.x - 1, m.slot.y)	/* left*/
-	};
-	for (unsigned int i = 0; i < sizeof(adj); ++i) { /* Need wrapping */
-		if (!slot_on_board(adj[i])) { /* ignore if not on board. */
-			continue;
-		}
-		/* The (i + 2) % 4 math here is a bit evil, but it works. */
-		enum edge pair = b.tiles[index_slot(adj[i])].edges[(i + 2) % 4];
-		if (pair == EMPTY) {
-			continue; /* Empty tiles match with everything. */
-		}
-		if (pair != m.tile.edges[i]) { /* Corresponding don't match. */
-			fprintf(stderr, "Edges don't match.\n");
-			return 1;
-		}
-	}
-	return 0;
 }
 
 /* TODO refactor to return error code - we need to know if we make a bad move */
