@@ -133,3 +133,7 @@ struct game make_game(void)
 	return g;
 }
 
+int main(void)
+{
+	return 0;
+}

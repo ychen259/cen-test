@@ -114,11 +114,10 @@ static struct board update_slot_spots(struct board b, struct slot s)
 }
 
 /* TODO: Switch int error codes to error enums for cleanliness. */
-static int validate_move(struct board b, struct move m)
+static int invalid_move(struct board b, struct move m)
 {
 	if (!slot_placeable(b, m.slot)) {
-		fprintf(stderr, "Invalid location for tile.\n");
-		return 1;
+		return 1; /* Slot not placeable. */
 	}
 	/* Check adjacent tiles to make sure edges match. */
 	struct slot adj[4] = {
@@ -137,8 +136,7 @@ static int validate_move(struct board b, struct move m)
 			continue; /* Empty tiles match with everything. */
 		}
 		if (pair != m.tile.edges[i]) { /* Corresponding don't match. */
-			fprintf(stderr, "Edges don't match.\n");
-			return 1;
+			return 2;
 		}
 	}
 	return 0;
@@ -181,15 +179,27 @@ char *print_board(struct board b, char res[BOARD_LEN])
 	return res;
 }
 
-/* TODO refactor to return error code - we need to know if we make a bad move */
-struct board play_move(struct board b, struct move m)
+/* See TODO for invalid_move. */
+int play_move(struct board *b, struct move m)
 {
-	if (validate_move(b, m)) {
-		return b;
+	int rc;
+	if ((rc = invalid_move(*b, m))) {
+		return rc;
 	}
-	printf("Valid location for tile (%u, %u)!\n", m.slot.x, m.slot.y);
-	b.tiles[index_slot(m.slot)] = rotate_tile(m.tile, m.rotation);
-	return update_slot_spots(b, m.slot);
+	b->tiles[index_slot(m.slot)] = rotate_tile(m.tile, m.rotation);
+	*b = update_slot_spots(*b, m.slot);
+	return 0;
+}
+
+static void play_and_check_move(struct board *b, struct move m)
+{
+	int rc;
+	char buf[TILE_LEN];
+	if ((rc = play_move(b, m))) {
+		printf("Invalid move! %d\n", rc);
+	} else {
+		printf("Good move!\n");
+	}
 }
 
 int main(void)
@@ -234,28 +244,22 @@ int main(void)
 	struct board b = make_board();
 	printf("%s\n", print_board(b, board_buffer));
 
-	printf("\nTop row city. All invalid: \n");
-	for (int i = 0; i < AXIS; ++i) {
-		struct slot s = make_slot(i, 0);
-		play_move(b, make_move(tiles[3], s, 0));
-	}
-
 	printf("\nLet's see what slots are placeable.\n");
 	print_placeable_slots(b);
-	printf("\nPlay the center. Valid starting move.\n");
-	const unsigned int mid = AXIS / 2; /* BAD, REFACTOR. FIXME */
-	b = play_move(b, make_move(tiles[3], make_slot(mid, mid), 0));
+	const unsigned int mid = AXIS / 2;
+	printf("\nPlay the center (%d, %d), the starting move.\n", mid, mid);
+	play_and_check_move(&b, make_move(tiles[3], make_slot(mid, mid), 0));
 	printf("%s\n", print_board(b, board_buffer));
 
 	printf("\nAnd now what slots are placeable?\n");
 	print_placeable_slots(b);
 
-	printf("\nLet's test the tile validator.\n");
-	b = play_move(b, make_move(tiles[2], make_slot(mid, mid + 1), 0));
+	printf("\nLet's test the tile validator: (%d, %d)\n", mid, mid + 1);
+	play_and_check_move(&b,make_move(tiles[2], make_slot(mid, mid + 1), 0));
 	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);
 
-	b = play_move(b, make_move(tiles[3], make_slot(mid, mid + 1), 0));
+	play_and_check_move(&b,make_move(tiles[3], make_slot(mid, mid + 1), 0));
 	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);
 

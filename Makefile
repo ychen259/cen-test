@@ -10,7 +10,7 @@ board: board.c board.h tile.o slot.o move.o
 mt19937-64.o: mt19937-64.c mt19937-64.h
 	$(CC) $(CFLAGS) -c -o mt19937-64.o mt19937-64.c
 
-move.o: move.c move.h
+move.o: move.c move.h tile.o
 	$(CC) ${CFLAGS} -c -o move.o move.c
 
 tile.o: tile.c tile.h
