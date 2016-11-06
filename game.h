@@ -8,17 +8,22 @@
 
 #include "limits.h"
 #include "tile.h"
+#include "board.h"
 #include "rngs/mt19937-64.h" /* Mersenne Twister PRNG. Try PCG if too slow */
 
 #define TILE_COUNT 72
 
 struct game {
-	int graphs[100];
+	int graphs[100]; /* Placeholder for struct graph */
+	struct board board;
 	struct tile tile_deck[TILE_COUNT];
 	size_t graphs_used;
 	size_t tiles_used;
+	int scores[2];
 };
 
 struct game make_game(void);
+int play_move(struct game g, struct move m);
+struct tile deal_tile(struct game g);
 
 #endif

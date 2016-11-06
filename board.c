@@ -87,16 +87,6 @@ static struct board remove_placeable_slot(struct board b, struct slot s)
 	return b;
 }
 
-static void print_placeable_slots(struct board b)
-{
-	printf("Slots:\n");
-	printf("X\tY\n");
-	for (size_t i = 0; i < b.sps; ++i) {
-		printf("%u\t%u\n", b.slot_spots[i].x, b.slot_spots[i].y);
-	}
-	return;
-}
-
 static struct board update_slot_spots(struct board b, struct slot s)
 {
 	/* Check the slots above, left, right, and below. */
@@ -142,59 +132,21 @@ static int invalid_move(struct board b, struct move m)
 	return 0;
 }
 
-struct board make_board(void)
+#ifdef TEST
+static void print_placeable_slots(struct board b)
 {
-       struct board b;
-       enum edge edges[5] = { EMPTY, EMPTY, EMPTY, EMPTY, EMPTY };
-       const unsigned int mid = (AXIS - 1) / 2; /* Must start in center. */
-       b.slot_spots[0] = make_slot(mid, mid);
-       b.sps = 1;
-       for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
-		b.tiles[i] = make_tile(edges, NONE);
-       }
-       /* Tab between columns except for the last one, which newlines. */
-       memset(b.column_terminators, '\t', AXIS - 1);
-       b.column_terminators[AXIS - 1] = '\n';
-       return b;
-}
-
-char *print_board(struct board b, char res[BOARD_LEN])
-{
-	const size_t cnt = TILE_LINES;
-	const size_t len = TILE_LINE_LEN;
-	char buf[TILE_LEN];
-
-	/* Pretty print the board in NxN format. */
-	for (size_t i = 0; i < AXIS; ++i) {
-		for (size_t j = 0; j < AXIS; ++j) {
-			print_tile(b.tiles[index_slot(make_slot(i, j))], buf);
-			for (size_t k = 0; k < cnt; ++k) {
-				const size_t ind = ((i *cnt +k) *AXIS +j) *len;
-				buf[(k + 1) *len - 1] = b.column_terminators[j];
-				memcpy(&res[ind], &buf[len * k], len);
-			}
-		}
+	printf("Slots:\n");
+	printf("X\tY\n");
+	for (size_t i = 0; i < b.sps; ++i) {
+		printf("%u\t%u\n", b.slot_spots[i].x, b.slot_spots[i].y);
 	}
-	res[BOARD_LEN - 1] = '\0';
-	return res;
-}
-
-/* See TODO for invalid_move. */
-int play_move(struct board *b, struct move m)
-{
-	int rc;
-	if ((rc = invalid_move(*b, m))) {
-		return rc;
-	}
-	b->tiles[index_slot(m.slot)] = rotate_tile(m.tile, m.rotation);
-	*b = update_slot_spots(*b, m.slot);
-	return 0;
+	return;
 }
 
 static void play_and_check_move(struct board *b, struct move m)
 {
 	int rc;
-	if ((rc = play_move(b, m))) {
+	if ((rc = play_move_board(b, m))) {
 		printf("Invalid move! %d\n", rc);
 	} else {
 		printf("Good move!\n");
@@ -263,5 +215,55 @@ int main(void)
 	printf("%s\n", print_board(b, board_buffer));
 	print_placeable_slots(b);
 
+	return 0;
+}
+#endif
+
+struct board make_board(void)
+{
+       struct board b;
+       enum edge edges[5] = { EMPTY, EMPTY, EMPTY, EMPTY, EMPTY };
+       const unsigned int mid = (AXIS - 1) / 2; /* Must start in center. */
+       b.slot_spots[0] = make_slot(mid, mid);
+       b.sps = 1;
+       for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
+		b.tiles[i] = make_tile(edges, NONE);
+       }
+       /* Tab between columns except for the last one, which newlines. */
+       memset(b.column_terminators, '\t', AXIS - 1);
+       b.column_terminators[AXIS - 1] = '\n';
+       return b;
+}
+
+char *print_board(struct board b, char res[BOARD_LEN])
+{
+	const size_t cnt = TILE_LINES;
+	const size_t len = TILE_LINE_LEN;
+	char buf[TILE_LEN];
+
+	/* Pretty print the board in NxN format. */
+	for (size_t i = 0; i < AXIS; ++i) {
+		for (size_t j = 0; j < AXIS; ++j) {
+			print_tile(b.tiles[index_slot(make_slot(i, j))], buf);
+			for (size_t k = 0; k < cnt; ++k) {
+				const size_t ind = ((i *cnt +k) *AXIS +j) *len;
+				buf[(k + 1) *len - 1] = b.column_terminators[j];
+				memcpy(&res[ind], &buf[len * k], len);
+			}
+		}
+	}
+	res[BOARD_LEN - 1] = '\0';
+	return res;
+}
+
+/* See TODO for invalid_move. */
+int play_move_board(struct board *b, struct move m)
+{
+	int rc;
+	if ((rc = invalid_move(*b, m))) {
+		return rc;
+	}
+	b->tiles[index_slot(m.slot)] = rotate_tile(m.tile, m.rotation);
+	*b = update_slot_spots(*b, m.slot);
 	return 0;
 }
