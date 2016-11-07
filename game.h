@@ -23,7 +23,7 @@ struct game {
 };
 
 struct game make_game(void);
-int play_move(struct game g, struct move m);
+int play_move(struct game g, struct move m, int player);
 struct tile deal_tile(struct game g);
 
 #endif

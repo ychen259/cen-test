@@ -134,7 +134,7 @@ struct game make_game(void)
 	return g;
 }
 
-int play_move(struct game g, struct move m)
+int play_move(struct game g, struct move m, int player)
 {
 	return play_move_board(&g.board, m);
 	// Graph and score stuff here.

@@ -1,5 +1,5 @@
 CFLAGS=-std=c99 -march=native -flto -Wall -Wextra -pedantic -O2
-all: game
+all: game board
 
 game: game.c rng.o tile.o board.o slot.o
 	$(CC) $(CFLAGS) -o test game.c rng.o tile.o board.o slot.o
