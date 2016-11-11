@@ -23,6 +23,7 @@ struct game {
 };
 
 struct game make_game(void);
+struct game make_game_with_deck(struct tile *deck);
 int play_move(struct game g, struct move m, int player);
 struct tile deal_tile(struct game g);
 

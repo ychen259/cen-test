@@ -134,6 +134,13 @@ struct game make_game(void)
 	return g;
 }
 
+struct game make_game_with_deck(struct tile *deck)
+{
+	struct game g;
+	memcpy(g.tile_deck, deck, sizeof(*deck) * TILE_COUNT);
+	return g;
+}
+
 int play_move(struct game g, struct move m, int player)
 {
 	return play_move_board(&g.board, m);
@@ -145,6 +152,7 @@ struct tile deal_tile(struct game g)
 	return g.tile_deck[g.tiles_used++];
 }
 
+#ifdef TEST
 int main(void)
 {
 	struct game g = make_game();
@@ -154,3 +162,4 @@ int main(void)
 	}
 	return 0;
 }
+#endif

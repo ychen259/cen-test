@@ -1,8 +1,14 @@
 CFLAGS=-std=c99 -march=native -flto -Wall -Wextra -pedantic -O2
-all: game board
+all: game board server client
+
+server: server.c game.o rng.o tile.o board.o slot.o
+	$(CC) $(CFLAGS) -o server server.c game.o rng.o tile.o board.o slot.o
+
+client: client.c game.o rng.o tile.o board.o slot.o
+	$(CC) $(CFLAGS) -o client client.c game.o rng.o tile.o board.o slot.o
 
 game: game.c rng.o tile.o board.o slot.o
-	$(CC) $(CFLAGS) -o test game.c rng.o tile.o board.o slot.o
+	$(CC) $(CFLAGS) -DTEST -o test_game game.c rng.o tile.o board.o slot.o
 
 board: board.c board.h tile.o slot.o move.o
 	$(CC) $(CFLAGS) -DTEST -o test_board board.c tile.o slot.o move.o
