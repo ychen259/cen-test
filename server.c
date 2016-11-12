@@ -1,4 +1,4 @@
-#include <stdlib.h>     /* NULL */
+#include <stdlib.h>     /* NULL, malloc(), free() */
 #include <stdint.h>	/* uint32_t */
 #include <string.h>     /* memset() */
 #include <unistd.h>     /* write() */
@@ -29,24 +29,16 @@ struct sockaddr_in init_sockaddr(int port)
 static void protocol(void *args)
 {
 	/* Note, we should listen in a seperate thread. */
-	struct game g = make_game();
 	int *hostfd = (int *)args;
-	unsigned char buf[6 * TILE_COUNT];
-	for (size_t i = 0; i < TILE_COUNT; ++i) {
-		buf[i * 6 + 0] = g.tile_deck[i].edges[0];
-		buf[i * 6 + 1] = g.tile_deck[i].edges[1];
-		buf[i * 6 + 2] = g.tile_deck[i].edges[2];
-		buf[i * 6 + 3] = g.tile_deck[i].edges[3];
-		buf[i * 6 + 4] = g.tile_deck[i].edges[4];
-		buf[i * 6 + 5] = g.tile_deck[i].attribute;
-	}
+	struct game *g = malloc(sizeof(*g));
+	make_game(g);
+	unsigned char buf[30];
 	listen(*hostfd, 10);
 	printf("Listening.\n");
 
 	int players[PLAYER_COUNT] = {0};
 	for (int i = 0; i < PLAYER_COUNT; ++i) {
 		players[i] = accept(*hostfd, NULL, NULL);
-		write(players[i], buf, TILE_SZ * TILE_COUNT);
 
 		struct timeval tm;
 		memset(&tm, 0, sizeof(tm));
@@ -56,9 +48,19 @@ static void protocol(void *args)
 	}
 	printf("Connected both players!\n");
 
+	for (size_t j = 0; j < TILE_COUNT; ++j) {
+		buf[0] = g->tile_deck[j].edges[0];
+		buf[1] = g->tile_deck[j].edges[1];
+		buf[2] = g->tile_deck[j].edges[2];
+		buf[3] = g->tile_deck[j].edges[3];
+		buf[4] = g->tile_deck[j].edges[4];
+		buf[5] = g->tile_deck[j].attribute;
+		for (int i = 0; i < PLAYER_COUNT; ++i) {
+			write(players[i], buf, TILE_SZ);
+		}
+	}
 	/* TODO: Randomly pick player to go first. */
 	int player = 0; /* Player 0 goes first. */
-	/* Send both players the tile set. */
 	// prev_move = NULL
 	while (1) { /* Play game. */
 		// piece = draw_tile(game);
@@ -78,6 +80,7 @@ static void protocol(void *args)
 	for (int i = 0; i < PLAYER_COUNT; ++i) {
 		close(players[i]);
 	}
+	free(g);
 	free(hostfd);
         return;
 }

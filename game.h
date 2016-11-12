@@ -22,9 +22,9 @@ struct game {
 	int scores[2];
 };
 
-struct game make_game(void);
-struct game make_game_with_deck(struct tile *deck);
-int play_move(struct game g, struct move m, int player);
-struct tile deal_tile(struct game g);
+void make_game(struct game *g);
+void make_game_with_deck(struct game *g, struct tile *deck);
+int play_move(struct game *g, struct move m, int player);
+struct tile deal_tile(struct game *g);
 
 #endif

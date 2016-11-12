@@ -123,42 +123,40 @@ static void init_deck(struct tile deck[TILE_COUNT])
 	return;
 }
 
-struct game make_game(void)
+void make_game(struct game *g)
 {
-	struct game g;
-	g.graphs_used = g.tiles_used = g.scores[0] = g.scores[1] = 0;
-	init_deck(g.tile_deck);
+	g->graphs_used = g->tiles_used = g->scores[0] = g->scores[1] = 0;
+	init_deck(g->tile_deck);
 	/* The first index must be 0 (have to start with start tile). */
-	shuffle_tiles(&g.tile_deck[1], TILE_COUNT - 1);
-	g.board = make_board();
-	return g;
+	shuffle_tiles(&g->tile_deck[1], TILE_COUNT - 1);
+	g->board = make_board();
+	return;
 }
 
-struct game make_game_with_deck(struct tile *deck)
+void make_game_with_deck(struct game *g, struct tile *deck)
 {
-	struct game g;
-	memcpy(g.tile_deck, deck, sizeof(*deck) * TILE_COUNT);
-	return g;
+	memcpy(g->tile_deck, deck, sizeof(*deck) * TILE_COUNT);
 }
 
-int play_move(struct game g, struct move m, int player)
+int play_move(struct game *g, struct move m, int player)
 {
-	return play_move_board(&g.board, m);
+	return play_move_board(&g->board, m);
 	// Graph and score stuff here.
 }
 
-struct tile deal_tile(struct game g)
+struct tile deal_tile(struct game *g)
 {
-	return g.tile_deck[g.tiles_used++];
+	return g->tile_deck[g->tiles_used++];
 }
 
 #ifdef TEST
 int main(void)
 {
-	struct game g = make_game();
+	struct game g;
+	make_game(&g);
 	char buf[TILE_LEN];
 	for (int i = 0; i < TILE_COUNT; ++i) {
-		printf("%s\n", print_tile(deal_tile(g), buf));
+		printf("%s\n", print_tile(deal_tile(&g), buf));
 	}
 	return 0;
 }

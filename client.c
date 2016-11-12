@@ -92,26 +92,29 @@ int main(void)
 	}
 
 	printf("Successfully connected.\n");
-	unsigned char buf[TILE_SZ * TILE_COUNT];
-	if (read(sockfd, buf, sizeof(buf)) < sizeof(buf)) {
-		printf("Failed to read tile deck.\n");
-		return 1;
-	}
-	struct game g;
-	struct tile tileset[TILE_COUNT];
+	unsigned char buf[100];
+	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
 	for (int i = 0; i < TILE_COUNT; ++i) {
+		read(sockfd, buf, TILE_SZ);
 		enum edge edges[5];
 		enum attribute a;
-		edges[i] = buf[i];
-		edges[i + 1] = buf[i + 1];
-		edges[i + 2] = buf[i + 2];
-		edges[i + 3] = buf[i + 3];
-		edges[i + 4] = buf[i + 4];
-		a = buf[i + 5];
+		edges[0] = buf[0];
+		edges[1] = buf[1];
+		edges[2] = buf[2];
+		edges[3] = buf[3];
+		edges[4] = buf[4];
+		a = buf[5];
 		tileset[i] = make_tile(edges, a);
 	}
+	struct game *g = malloc(sizeof(*g));
+	make_game_with_deck(g, tileset);
+	for (int i = 0; i < TILE_COUNT; ++i) {
+		printf("%s\n", print_tile(deal_tile(g), buf));
+	}
+	free(tileset);
 
 	close(sockfd);
 
+	free(g);
 	return 0;
 }
