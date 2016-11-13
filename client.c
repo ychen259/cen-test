@@ -66,8 +66,37 @@ static int connect_retry(char *host, int port)
 	return sockfd;
 }
 
+static int get_clock(int sockfd, uint64_t *clock)
+{
+	*clock = 0;
+	unsigned char buf[sizeof(*clock)];
+	read(sockfd, buf, sizeof(buf));
+	for (size_t i = 0; i < sizeof(buf); ++i) {
+		*clock += (buf[i] << (i * 8));
+	}
+	return 0;
+}
+
+static int get_deck(int sockfd, struct tile *deck, size_t clen, size_t dlen)
+{
+	unsigned char buf[clen];
+	for (size_t i = 0; i < dlen; ++i) {
+		read(sockfd, buf, clen);
+		enum edge edges[5];
+		enum attribute a;
+		edges[0] = buf[0];
+		edges[1] = buf[1];
+		edges[2] = buf[2];
+		edges[3] = buf[3];
+		edges[4] = buf[4];
+		a = buf[5];
+		deck[i] = make_tile(edges, a);
+	}
+	return 0;
+}
+
 #define REMOTE_HOST "127.0.0.1" /* TODO: Get a command line variable. */
-#define REMOTE_PORT 5000 /* TODO: Factor port into shared header. */
+#define REMOTE_PORT 5000 /* TODO: Factor into command line variable. */
 
 //int main(int argc, char *argv[])
 int main(void)
@@ -93,25 +122,20 @@ int main(void)
 
 	printf("Successfully connected.\n");
 	unsigned char buf[100];
-	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
-	for (int i = 0; i < TILE_COUNT; ++i) {
-		read(sockfd, buf, TILE_SZ);
-		enum edge edges[5];
-		enum attribute a;
-		edges[0] = buf[0];
-		edges[1] = buf[1];
-		edges[2] = buf[2];
-		edges[3] = buf[3];
-		edges[4] = buf[4];
-		a = buf[5];
-		tileset[i] = make_tile(edges, a);
-	}
+	uint64_t move_clock;
+	get_clock(sockfd, &move_clock);
+	printf("Clock: %llu\n", move_clock);
+
+	/* TODO: Refactor? */
 	struct game *g = malloc(sizeof(*g));
+	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
+	get_deck(sockfd, tileset, TILE_SZ, TILE_COUNT);
 	make_game_with_deck(g, tileset);
+	free(tileset);
+
 	for (int i = 0; i < TILE_COUNT; ++i) {
 		printf("%s\n", print_tile(deal_tile(g), buf));
 	}
-	free(tileset);
 
 	close(sockfd);
 

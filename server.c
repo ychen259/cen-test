@@ -25,6 +25,35 @@ struct sockaddr_in init_sockaddr(int port)
 /* TODO: Send client hosts with sockets so that 3rd parties can't jump in */
 #define PLAYER_COUNT 2
 
+static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
+{
+	char buf[TILE_SZ];
+
+	for (size_t i = 0; i < dlen; ++i) {
+		buf[0] = deck[i].edges[0];
+		buf[1] = deck[i].edges[1];
+		buf[2] = deck[i].edges[2];
+		buf[3] = deck[i].edges[3];
+		buf[4] = deck[i].edges[4];
+		buf[5] = deck[i].attribute;
+		for (size_t j = 0; j < pcnt; ++j) {
+			/* TODO: Error handling. */
+			write(players[j], buf, TILE_SZ);
+		}
+	}
+	return 0;
+}
+
+static int send_clock(int socket, uint64_t clock)
+{
+	unsigned char buf[sizeof(clock)];
+	for (size_t j = 0; j < sizeof(clock); ++j) {
+		buf[j] = (unsigned char) (clock << (j * 8));
+	}
+	write(socket, buf, sizeof(buf));
+	return 0;
+}
+
 /* Step through protocol with clients. */
 static void protocol(void *args)
 {
@@ -32,12 +61,11 @@ static void protocol(void *args)
 	int *hostfd = (int *)args;
 	struct game *g = malloc(sizeof(*g));
 	make_game(g);
-	unsigned char buf[30];
 	listen(*hostfd, 10);
 	printf("Listening.\n");
 
 	int players[PLAYER_COUNT] = {0};
-	for (int i = 0; i < PLAYER_COUNT; ++i) {
+	for (size_t i = 0; i < PLAYER_COUNT; ++i) {
 		players[i] = accept(*hostfd, NULL, NULL);
 
 		struct timeval tm;
@@ -45,22 +73,18 @@ static void protocol(void *args)
 		tm.tv_sec = 5; /* 5 seconds per move timer. */
 		setsockopt(players[i], SOL_SOCKET, SO_RCVTIMEO,
 				(char *)&tm, sizeof(tm));
+
+		send_clock(players[i], tm.tv_sec);
 	}
 	printf("Connected both players!\n");
 
-	for (size_t j = 0; j < TILE_COUNT; ++j) {
-		buf[0] = g->tile_deck[j].edges[0];
-		buf[1] = g->tile_deck[j].edges[1];
-		buf[2] = g->tile_deck[j].edges[2];
-		buf[3] = g->tile_deck[j].edges[3];
-		buf[4] = g->tile_deck[j].edges[4];
-		buf[5] = g->tile_deck[j].attribute;
-		for (int i = 0; i < PLAYER_COUNT; ++i) {
-			write(players[i], buf, TILE_SZ);
-		}
+	if (send_deck(players, PLAYER_COUNT, g->tile_deck, TILE_COUNT)) {
+		printf("Failed to send deck.\n");
 	}
+
 	/* TODO: Randomly pick player to go first. */
 	int player = 0; /* Player 0 goes first. */
+	unsigned char buf[100];
 	// prev_move = NULL
 	while (1) { /* Play game. */
 		// piece = draw_tile(game);
@@ -118,8 +142,8 @@ int main(void)
 		/* Found a match. Create a child thread to host game. */
 		/* TODO: Lots of error handling. */
 		pthread_t *child = malloc(sizeof(pthread_t));
-		pthread_detach(*child); /* OS will free() for us. */
-		int *hostfd = malloc(sizeof(int)); /* Thread will free() */
+		pthread_detach(*child);			/* OS will free() */
+		int *hostfd = malloc(sizeof(int));	/* Thread will free() */
 		*hostfd = socket(AF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in host_addr = init_sockaddr(0); // random port
 		bind(*hostfd, (struct sockaddr *)&host_addr, sizeof(host_addr));
