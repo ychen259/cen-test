@@ -28,7 +28,6 @@ struct sockaddr_in init_sockaddr(int port)
 static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
 {
 	char buf[TILE_SZ];
-
 	for (size_t i = 0; i < dlen; ++i) {
 		buf[0] = deck[i].edges[0];
 		buf[1] = deck[i].edges[1];
@@ -37,21 +36,50 @@ static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
 		buf[4] = deck[i].edges[4];
 		buf[5] = deck[i].attribute;
 		for (size_t j = 0; j < pcnt; ++j) {
-			/* TODO: Error handling. */
-			write(players[j], buf, TILE_SZ);
+			write(players[j], buf, TILE_SZ); // TODO: Error handling
 		}
 	}
 	return 0;
 }
 
-static int send_clock(int socket, uint64_t clock)
+static int send_clock_and_order(int *players, int first, uint64_t seconds)
 {
-	unsigned char buf[sizeof(clock)];
-	for (size_t j = 0; j < sizeof(clock); ++j) {
-		buf[j] = (unsigned char) (clock << (j * 8));
+	struct timeval tm;
+	memset(&tm, 0, sizeof(tm));
+	tm.tv_sec = seconds;
+
+	unsigned char buf[1 + sizeof(seconds)]; // First? + seconds.
+	for (size_t i = 0; i < sizeof(seconds); ++i) {
+		buf[i + 1] = (uint8_t) (seconds << (8 * i));
 	}
-	write(socket, buf, sizeof(buf));
+
+	buf[0] = 1;
+	write(players[first], buf, sizeof(buf));
+	setsockopt(players[0],SOL_SOCKET,SO_RCVTIMEO,(char *)&tm,sizeof(tm));
+	buf[0] = 0;
+	write(players[first ^ 1], buf, sizeof(buf));
+	setsockopt(players[1],SOL_SOCKET,SO_RCVTIMEO,(char *)&tm,sizeof(tm));
 	return 0;
+}
+
+static uint8_t *serialize_tile(struct tile t, uint8_t *buf)
+{
+	for (size_t i = 0; i < 5; ++i) {
+		buf[i] = t.edges[i];
+	}
+	buf[6] = t.attribute;
+	return &buf[7];
+}
+
+static uint8_t *serialize_move(struct move m, uint8_t *buf)
+{
+	buf = serialize_tile(m.tile, buf);
+	uint8_t x = m.slot.x, y = m.slot.y;
+	uint8_t rotation = m.rotation;
+	*buf++ = x;
+	*buf++ = y;
+	*buf++ = rotation;
+	return buf;
 }
 
 /* Step through protocol with clients. */
@@ -64,31 +92,25 @@ static void protocol(void *args)
 	listen(*hostfd, 10);
 	printf("Listening.\n");
 
+	int current_player = 0; /* TODO: Randomly pick player to go first. */
 	int players[PLAYER_COUNT] = {0};
-	for (size_t i = 0; i < PLAYER_COUNT; ++i) {
+	for (size_t i = 0; i < sizeof(players); ++i) {
 		players[i] = accept(*hostfd, NULL, NULL);
-
-		struct timeval tm;
-		memset(&tm, 0, sizeof(tm));
-		tm.tv_sec = 5; /* 5 seconds per move timer. */
-		setsockopt(players[i], SOL_SOCKET, SO_RCVTIMEO,
-				(char *)&tm, sizeof(tm));
-
-		send_clock(players[i], tm.tv_sec);
 	}
+
+	send_clock_and_order(players, current_player, 5);
 	printf("Connected both players!\n");
 
-	if (send_deck(players, PLAYER_COUNT, g->tile_deck, TILE_COUNT)) {
+	if (send_deck(players, sizeof(players), g->tile_deck, TILE_COUNT)) {
 		printf("Failed to send deck.\n");
 	}
 
-	/* TODO: Randomly pick player to go first. */
-	int player = 0; /* Player 0 goes first. */
 	unsigned char buf[100];
-	// prev_move = NULL
+	struct move previous;
 	while (1) { /* Play game. */
-		// piece = draw_tile(game);
-		// write(players[player], (piece, prev_move))
+		struct tile t = deal_tile(g);
+		serialize_move(previous, serialize_tile(t, buf));
+		write(players[current_player], buf, sizeof(buf));
 		// move = read(players[player], sizeof(move));
 		// if (read(players[player],&move,sizeof(move))<sizeof(move)) {
 		// 	/* player loses, player + 1 wins. */
@@ -98,7 +120,7 @@ static void protocol(void *args)
 		// 	break;
 		// }
 		// prev_move = move
-		player = (player + 1) % 2; /* Switch */
+		current_player ^= 1; /* Switch */
 		break;
 	}
 	for (int i = 0; i < PLAYER_COUNT; ++i) {

@@ -133,9 +133,11 @@ int main(void)
 	make_game_with_deck(g, tileset);
 	free(tileset);
 
+#if 0
 	for (int i = 0; i < TILE_COUNT; ++i) {
 		printf("%s\n", print_tile(deal_tile(g), buf));
 	}
+#endif
 
 	close(sockfd);
 
