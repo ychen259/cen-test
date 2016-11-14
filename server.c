@@ -94,12 +94,13 @@ static void protocol(void *args)
 
 	int current_player = 0; /* TODO: Randomly pick player to go first. */
 	int players[PLAYER_COUNT] = {0};
-	for (size_t i = 0; i < sizeof(players); ++i) {
+	for (size_t i = 0; i < PLAYER_COUNT; ++i) {
 		players[i] = accept(*hostfd, NULL, NULL);
 	}
+	printf("Connected both players!\n");
 
 	send_clock_and_order(players, current_player, 5);
-	printf("Connected both players!\n");
+	printf("Sent clock and order.\n");
 
 	if (send_deck(players, sizeof(players), g->tile_deck, TILE_COUNT)) {
 		printf("Failed to send deck.\n");

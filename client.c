@@ -66,13 +66,14 @@ static int connect_retry(char *host, int port)
 	return sockfd;
 }
 
-static int get_clock(int sockfd, uint64_t *clock)
+static int get_clock_and_order(int sockfd, int *first, uint64_t *clock)
 {
 	*clock = 0;
-	unsigned char buf[sizeof(*clock)];
+	unsigned char buf[1 + sizeof(*clock)];
 	read(sockfd, buf, sizeof(buf));
+	*first = buf[0];
 	for (size_t i = 0; i < sizeof(buf); ++i) {
-		*clock += (buf[i] << (i * 8));
+		*clock += (buf[i + 1] << (i * 8));
 	}
 	return 0;
 }
@@ -121,11 +122,17 @@ int main(void)
 	}
 
 	printf("Successfully connected.\n");
-	unsigned char buf[100];
+	int first;
 	uint64_t move_clock;
-	get_clock(sockfd, &move_clock);
+	get_clock_and_order(sockfd, &first, &move_clock);
 	printf("Clock: %llu\n", move_clock);
+	if (first) {
+		printf("I'm first!\n");
+	} else {
+		printf("I'm second!\n");
+	}
 
+	unsigned char buf[100];
 	/* TODO: Refactor? */
 	struct game *g = malloc(sizeof(*g));
 	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
