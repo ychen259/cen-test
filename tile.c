@@ -1,5 +1,19 @@
 #include "tile.h"
 
+int tile_eq(struct tile a, struct tile b)
+{
+	for (int i = 0; i < 5; ++i) {
+		if (a.edges[i] != b.edges[i]) {
+			return 0;
+		}
+	}
+	if (a.attribute != b.attribute) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
 struct tile make_tile(const enum edge edges[5], enum attribute a)
 {
 	struct tile t;

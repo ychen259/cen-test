@@ -1,4 +1,4 @@
-CFLAGS=-std=c99 -g -march=native -flto -Wall -Wextra -pedantic -O2
+CFLAGS=-std=c99 -g -march=native -flto -Wall -Wextra -pedantic -O0
 
 all: game board server client
 
@@ -6,12 +6,12 @@ clean:
 	rm *.o
 
 server: server.c game.o rng.o tile.o board.o slot.o
-	$(CC) $(CFLAGS) -o server server.c game.o rng.o tile.o board.o slot.o \
-		-lm -pthread
+	$(CC) $(CFLAGS) -o server server.c game.o rng.o tile.o move.o board.o \
+		slot.o -lm -pthread
 
 client: client.c game.o rng.o tile.o board.o slot.o
-	$(CC) $(CFLAGS) -o client client.c game.o rng.o tile.o board.o slot.o \
-		-lm
+	$(CC) $(CFLAGS) -o client client.c game.o rng.o tile.o move.o board.o \
+		slot.o -lm
 
 game: game.c game.h rng.o tile.o board.o slot.o
 	$(CC) $(CFLAGS) -DTEST -o test_game game.c rng.o tile.o board.o slot.o \
