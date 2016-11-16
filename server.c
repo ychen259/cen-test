@@ -31,17 +31,17 @@ static uint8_t *serialize_tile(struct tile t, uint8_t *buf)
 	for (size_t i = 0; i < 5; ++i) {
 		buf[i] = t.edges[i];
 	}
-	buf[6] = t.attribute;
-	return &buf[7];
+	buf[5] = t.attribute;
+	return &buf[6];
 }
 
-static struct tile deserialize_tile(uint8_t *buf)
+static struct tile deserialize_tile(uint8_t buf[TILE_SZ])
 {
 	enum edge edges[5];
 	for (size_t i = 0; i < 5; ++i) {
 		edges[i] = buf[i];
 	}
-	enum attribute a = buf[6];
+	enum attribute a = buf[5];
 	return make_tile(edges, a);
 }
 
@@ -56,16 +56,16 @@ static uint8_t *serialize_move(struct move m, uint8_t *buf)
 	return buf;
 }
 
-static struct move deserialize_move(uint8_t *buf)
+static struct move deserialize_move(uint8_t buf[MOVE_SZ])
 {
 	struct tile t = deserialize_tile(buf);
-	return make_move(t, make_slot(buf[7], buf[8]), buf[9]);
+	return make_move(t, make_slot(buf[6], buf[7]), buf[8]);
 }
 
 static void print_buffer(uint8_t *buf, size_t len)
 {
 	for (size_t i = 0; i < len; ++i) {
-		printf("%d ", buf[i]);
+		printf("%.2d ", buf[i]);
 	}
 	printf("\n");
 }
@@ -73,9 +73,11 @@ static void print_buffer(uint8_t *buf, size_t len)
 static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
 {
 	unsigned char buf[TILE_SZ];
+	memset(buf, 0, sizeof(buf));
 	for (size_t i = 0; i < dlen; ++i) {
-		serialize_tile(deck[i], buf);
+		serialize_tile(deck[i], &buf[0]);
 		for (size_t j = 0; j < pcnt; ++j) {
+			print_buffer(buf, sizeof(buf));
 			write(players[j], buf, TILE_SZ); // TODO: Error handling
 		}
 	}
@@ -84,6 +86,7 @@ static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
 
 static int send_clock_and_order(int *players, int first, uint64_t seconds)
 {
+	/* TODO: Error handling */
 	struct timeval tm;
 	memset(&tm, 0, sizeof(tm));
 	tm.tv_sec = (time_t) seconds;
@@ -117,7 +120,7 @@ enum reason {
 
 static void game_over(int *players, int winner, enum reason r)
 {
-	unsigned char buf[16];
+	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // Game_over? + TILE + Move
 	buf[0] = 1; /* Game over */
 	buf[2] = (uint8_t) r;
 
@@ -132,7 +135,9 @@ static void game_over(int *players, int winner, enum reason r)
 			printf("DEBUG: Loser | Player: %zu buf: ", i);
 		}
 		print_buffer(buf, sizeof(buf));
-		assert(write(players[i], buf, sizeof(buf)) == sizeof(buf));
+		if (write(players[i], buf, sizeof(buf)) != sizeof(buf)) {
+			printf("Game over error: %s\n", strerror(errno));
+		}
 	}
 	return;
 }
@@ -153,44 +158,38 @@ static void protocol(void *args)
 	}
 	printf("Connected both players!\n");
 
-	send_clock_and_order(players, current_player, 5);
+	if (send_clock_and_order(players, current_player, 5)) {
+		printf("Failed to send clock and order.\n");
+	}
 	printf("Sent clock and order.\n");
 
 	if (send_deck(players, PLAYER_COUNT, g->tile_deck, TILE_COUNT)) {
 		printf("Failed to send deck.\n");
 	}
 
-	unsigned char buf[16];
+	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // Game_over? + tile + move
 	struct move previous;
 	memset(&previous, 0, sizeof(previous));
-	while (1) { /* Play game. */
+	while (1) { /* Play game. TODO: Refactor into function? */
 		buf[0] = 0; /* Assume we keep playing. */
 		if (!more_tiles(g)) {
-			/* TODO: Scoring */
+			/* TODO: Scoring. replace 0 with high scoring player. */
 			game_over(players, 0, SCORE);
 			break;
 		}
 		struct tile t = deal_tile(g);
 		serialize_move(previous, serialize_tile(t, &buf[1]));
-		printf("Sending: ");
-		print_buffer(buf, sizeof(buf));
 		write(players[current_player], buf, sizeof(buf));
-		ssize_t bytes = read(players[current_player], buf, sizeof(buf));
-		if (bytes < (ssize_t)sizeof(buf)) {
+		if (read(players[current_player], buf, sizeof(buf))
+				< (ssize_t)sizeof(buf)) {
 			game_over(players, current_player^1, TIMEOUT);
 			break;
 		}
 		struct move m = deserialize_move(buf);
-		if (!tile_eq(m.tile, t)) {
-			game_over(players, current_player^1, INVALID);
-			break;
-		}
-#if 0
 		if (!tile_eq(m.tile, t) || play_move(g, m, current_player)) {
 			game_over(players, current_player^1, INVALID);
 			break;
 		}
-#endif
 		previous = m;
 		current_player ^= 1; /* Switch */
 	}
@@ -235,6 +234,9 @@ int main(void)
 		/* Found a match. Create a child thread to host game. */
 		/* TODO: Lots of error handling. */
 		pthread_t *child = malloc(sizeof(pthread_t));
+		if (!child) {
+			return 1;
+		}
 		pthread_detach(*child);			/* OS will free() */
 		int *hostfd = malloc(sizeof(int));	/* Thread will free() */
 		*hostfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -242,11 +244,14 @@ int main(void)
 		bind(*hostfd, (struct sockaddr *)&host_addr, sizeof(host_addr));
 		pthread_create(child, NULL, &protocol, hostfd);
 		
-		/* Tell the clients where to go. */
 		uint16_t port = get_socket_port(*hostfd);
+		unsigned char buf[sizeof(uint16_t)]; // Serialize port.
+		for (size_t i = 0; i < sizeof(buf); ++i) {
+			buf[i] = (uint8_t) (port >> (i * 8));
+		}
 		printf("Sending port: %u\n", ntohs(port));
 		for (int i = 0; i < PLAYER_COUNT; ++i) {
-			write(players[i], &port, sizeof(port));
+			write(players[i], &buf, sizeof(buf));
 			close(players[i]); /* No longer need to talk to them. */
 		}
 		queued_players = 0;

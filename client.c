@@ -28,14 +28,14 @@ static struct tile deserialize_tile(uint8_t *buf)
 	for (size_t i = 0; i < 5; ++i) {
 		edges[i] = buf[i];
 	}
-	enum attribute a = buf[6];
+	enum attribute a = buf[5];
 	return make_tile(edges, a);
 }
 
 static struct move deserialize_move(uint8_t *buf)
 {
 	struct tile t = deserialize_tile(buf);
-	return make_move(t, make_slot(buf[7], buf[8]), buf[9]);
+	return make_move(t, make_slot(buf[6], buf[7]), buf[8]);
 }
 
 static struct sockaddr_in make_sockaddr_in_port(int port)
@@ -100,10 +100,15 @@ static int connect_game(char *host, int welcome_port)
 		return -1;
 	} 
 
-	uint16_t port;
-	if (read(sockfd, &port, sizeof(port)) < 0) {
+
+	uint16_t port = 0;
+	unsigned char buf[sizeof(port)];
+	if (read(sockfd, &buf, sizeof(buf)) < 0) {
 		printf("Read error: %s\n", strerror(errno));
 		return -1;
+	}
+	for (size_t i = 0; i < sizeof(buf); ++i) {
+		port += (buf[i] << (8 * i));
 	}
 	printf("Got port: %u\n", ntohs(port));
 	close(sockfd);
@@ -118,7 +123,7 @@ static int connect_game(char *host, int welcome_port)
 
 static int get_clock_and_order(int sockfd, int *first, uint64_t *clock)
 {
-	unsigned char buf[1 + sizeof(*clock)];
+	unsigned char buf[1 + sizeof(*clock)]; // first? + clock
 	read(sockfd, buf, sizeof(buf));
 	print_buffer(buf, sizeof(buf));
 	*first = buf[0];
@@ -149,8 +154,8 @@ static uint8_t *serialize_tile(struct tile t, uint8_t *buf)
 	for (size_t i = 0; i < 5; ++i) {
 		buf[i] = t.edges[i];
 	}
-	buf[6] = t.attribute;
-	return &buf[7];
+	buf[5] = t.attribute;
+	return &buf[6];
 }
 
 static uint8_t *serialize_move(struct move m, uint8_t *buf)
@@ -192,7 +197,7 @@ int main(void)
 	make_game_with_deck(g, tileset);
 	free(tileset);
 
-	unsigned char buf[16];
+	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // game_over? + tile + move
 	int rc = 0;
 	/* 0 is us, opponent is 1. */
 	while ((rc = read(sockfd, buf, sizeof(buf))) == sizeof(buf)) {
