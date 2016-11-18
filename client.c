@@ -11,6 +11,7 @@
 #include <sys/types.h>	/* read(), write() */
 
 #include "limits.h"
+#include "serialization.h"
 #include "game.h"
 #include "move.h"
 
@@ -20,22 +21,6 @@ static void print_buffer(uint8_t *buf, size_t len)
 		printf("%d ", buf[i]);
 	}
 	printf("\n");
-}
-
-static struct tile deserialize_tile(uint8_t *buf)
-{
-	enum edge edges[5];
-	for (size_t i = 0; i < 5; ++i) {
-		edges[i] = buf[i];
-	}
-	enum attribute a = buf[5];
-	return make_tile(edges, a);
-}
-
-static struct move deserialize_move(uint8_t *buf)
-{
-	struct tile t = deserialize_tile(buf);
-	return make_move(t, make_slot(buf[6], buf[7]), buf[8]);
 }
 
 static struct sockaddr_in make_sockaddr_in_port(int port)
@@ -149,26 +134,6 @@ static int get_deck(int sockfd, struct tile *deck, size_t clen, size_t dlen)
 	return 0;
 }
 
-static uint8_t *serialize_tile(struct tile t, uint8_t *buf)
-{
-	for (size_t i = 0; i < 5; ++i) {
-		buf[i] = t.edges[i];
-	}
-	buf[5] = t.attribute;
-	return &buf[6];
-}
-
-static uint8_t *serialize_move(struct move m, uint8_t *buf)
-{
-	buf = serialize_tile(m.tile, buf);
-	uint8_t x = m.slot.x, y = m.slot.y;
-	uint8_t rotation = m.rotation;
-	*buf++ = x;
-	*buf++ = y;
-	*buf++ = rotation;
-	return buf;
-}
-
 #define REMOTE_HOST "127.0.0.1" /* TODO: Get a command line variable. */
 #define REMOTE_PORT 5000 /* TODO: Factor into command line variable. */
 
@@ -215,7 +180,7 @@ int main(void)
 		printf("Got a move!\n");
 		unsigned char b[100];
 		struct tile t = deserialize_tile(&buf[1]);
-		printf("Tile: %s\n", print_tile(t, b));
+		printf("Tile: \n%s\n", print_tile(t, b));
 		int mid = (AXIS - 1) / 2;
 		struct move m = make_move(t, make_slot(mid, mid), 0);
 		play_move(g, m, 0);

@@ -12,6 +12,7 @@
 #include <errno.h>	/* errno */
 #include "limits.h"	/* AXIS, TILE_SZ */
 #include "game.h"	/* Server needs to validate moves. */
+#include "serialization.h"
 
 struct sockaddr_in init_sockaddr(int port)
 {
@@ -25,42 +26,6 @@ struct sockaddr_in init_sockaddr(int port)
 
 /* TODO: Send client hosts with sockets so that 3rd parties can't jump in */
 #define PLAYER_COUNT 2
-
-static uint8_t *serialize_tile(struct tile t, uint8_t *buf)
-{
-	for (size_t i = 0; i < 5; ++i) {
-		buf[i] = t.edges[i];
-	}
-	buf[5] = t.attribute;
-	return &buf[6];
-}
-
-static struct tile deserialize_tile(uint8_t buf[TILE_SZ])
-{
-	enum edge edges[5];
-	for (size_t i = 0; i < 5; ++i) {
-		edges[i] = buf[i];
-	}
-	enum attribute a = buf[5];
-	return make_tile(edges, a);
-}
-
-static uint8_t *serialize_move(struct move m, uint8_t *buf)
-{
-	buf = serialize_tile(m.tile, buf);
-	uint8_t x = m.slot.x, y = m.slot.y;
-	uint8_t rotation = m.rotation;
-	*buf++ = x;
-	*buf++ = y;
-	*buf++ = rotation;
-	return buf;
-}
-
-static struct move deserialize_move(uint8_t buf[MOVE_SZ])
-{
-	struct tile t = deserialize_tile(buf);
-	return make_move(t, make_slot(buf[6], buf[7]), buf[8]);
-}
 
 static void print_buffer(uint8_t *buf, size_t len)
 {
@@ -223,6 +188,13 @@ int main(void)
 	int players[PLAYER_COUNT];
 	int queued_players = 0;
 
+	pthread_attr_t attr; /* Child opttions TODO REFACTOR */
+	int rc;
+	pthread_attr_init(&attr);
+	if ((rc = pthread_attr_setstacksize(&attr, 4096*1024))) { // 2k
+		printf("ERROR: %s\n", strerror(rc));
+	}
+
         while (1) {
 		/* TODO Ensure unique clients (can't play with self) */
 		players[queued_players++] = accept(listenfd, NULL, NULL);
@@ -242,7 +214,7 @@ int main(void)
 		*hostfd = socket(AF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in host_addr = init_sockaddr(0); // random port
 		bind(*hostfd, (struct sockaddr *)&host_addr, sizeof(host_addr));
-		pthread_create(child, NULL, &protocol, hostfd);
+		pthread_create(child, &attr, &protocol, hostfd);
 		
 		uint16_t port = get_socket_port(*hostfd);
 		unsigned char buf[sizeof(uint16_t)]; // Serialize port.
