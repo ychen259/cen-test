@@ -27,14 +27,6 @@ static struct sockaddr_in init_sockaddr(int port)
 /* TODO: Send client hosts with sockets so that 3rd parties can't jump in */
 #define PLAYER_COUNT 2
 
-static void print_buffer(uint8_t *buf, size_t len)
-{
-	for (size_t i = 0; i < len; ++i) {
-		printf("%.2d ", buf[i]);
-	}
-	printf("\n");
-}
-
 static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
 {
 	/* TODO: Error handling */

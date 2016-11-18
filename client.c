@@ -15,14 +15,6 @@
 #include "game.h"
 #include "move.h"
 
-static void print_buffer(uint8_t *buf, size_t len)
-{
-	for (size_t i = 0; i < len; ++i) {
-		printf("%d ", buf[i]);
-	}
-	printf("\n");
-}
-
 static struct sockaddr_in make_sockaddr_in_port(int port)
 {
 	struct sockaddr_in s;
@@ -84,8 +76,6 @@ static int connect_game(char *host, int welcome_port)
 		printf("Error: %s\n", strerror(errno));
 		return -1;
 	} 
-
-
 	uint16_t port = 0;
 	unsigned char buf[sizeof(port)];
 	if (read(sockfd, &buf, sizeof(buf)) < 0) {
@@ -97,12 +87,10 @@ static int connect_game(char *host, int welcome_port)
 	}
 	printf("Got port: %u\n", ntohs(port));
 	close(sockfd);
-
 	if ((sockfd = connect_retry(host, port)) < 0) {
 		printf("Error: %s\n", strerror(errno));
 		return -1;
 	}
-
 	return sockfd;
 }
 
@@ -137,6 +125,17 @@ static int get_deck(int sockfd, struct tile *deck, size_t clen, size_t dlen)
 #define REMOTE_HOST "127.0.0.1" /* TODO: Get a command line variable. */
 #define REMOTE_PORT 5000 /* TODO: Factor into command line variable. */
 
+static struct game *init_game(int socket)
+{
+	/* TODO: Error handling? */
+	struct game *g = malloc(sizeof(*g));
+	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
+	get_deck(socket, tileset, TILE_SZ, TILE_COUNT);
+	make_game_with_deck(g, tileset);
+	free(tileset);
+	return g;
+}
+
 int main(void)
 {
 	int sockfd;
@@ -156,16 +155,9 @@ int main(void)
 		printf("I'm second!\n");
 	}
 
-	struct game *g = malloc(sizeof(*g)); /* TODO: Refactor? */
-	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
-	get_deck(sockfd, tileset, TILE_SZ, TILE_COUNT);
-	make_game_with_deck(g, tileset);
-	free(tileset);
-
+	struct game *g = init_game(sockfd); /* TODO: Refactor? */
 	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // game_over? + tile + move
-	int rc = 0;
-	/* 0 is us, opponent is 1. */
-	while ((rc = read(sockfd, buf, sizeof(buf))) == sizeof(buf)) {
+	while (read(sockfd, buf, sizeof(buf)) == sizeof(buf)) {
 		printf("Recieved: ");
 		print_buffer(buf, sizeof(buf));
 		if (buf[0]) { /* game over. */
@@ -177,25 +169,18 @@ int main(void)
 			break;
 		}
 		/* Deserialize tile and move. */
-		printf("Got a move!\n");
-		unsigned char b[100];
 		struct tile t = deserialize_tile(&buf[1]);
-<<<<<<< HEAD
+		unsigned char b[100];
 		printf("Tile: \n%s\n", print_tile(t, b));
-=======
-		printf("Tile: %s\n", print_tile(t, b));
-		if (first) {
-			first = 0;
-		} else {
-			printf("DEBUG: ");
-			print_buffer(&buf[7], sizeof(buf) - 7);
+		if (!first) {
 			struct move prev = deserialize_move(&buf[7]);
 			printf("Prev move | x: %d y: %d: rotation: %d \n%s\n",
 				prev.slot.x, prev.slot.y, prev.rotation,
 				print_tile(prev.tile, b));
 			play_move(g, prev, 1);
+		} else { /* No previous move to deal with. */
+			first = 0;
 		}
->>>>>>> b603d76... Fixed a bug in the client code.
 		int mid = (AXIS - 1) / 2;
 		struct move m = make_move(t, make_slot(mid, mid), 0);
 		play_move(g, m, 0);
@@ -203,14 +188,6 @@ int main(void)
 		printf("Try playing the center.\n");
 		write(sockfd, buf, sizeof(buf));
 	}
-
-	printf("DEBUG: %d\n", rc);
-#if 0
-	for (int i = 0; i < TILE_COUNT; ++i) {
-		printf("%s\n", print_tile(deal_tile(g), buf));
-	}
-#endif
-
 	close(sockfd);
 	free(g);
 	return 0;
