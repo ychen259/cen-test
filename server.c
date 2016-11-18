@@ -14,7 +14,7 @@
 #include "game.h"	/* Server needs to validate moves. */
 #include "serialization.h"
 
-struct sockaddr_in init_sockaddr(int port)
+static struct sockaddr_in init_sockaddr(int port)
 {
 	struct sockaddr_in s;
 	memset(&s, '0', sizeof(s));
@@ -37,13 +37,15 @@ static void print_buffer(uint8_t *buf, size_t len)
 
 static int send_deck(int *players, size_t pcnt, struct tile *deck, size_t dlen)
 {
+	/* TODO: Error handling */
 	unsigned char buf[TILE_SZ];
 	memset(buf, 0, sizeof(buf));
 	for (size_t i = 0; i < dlen; ++i) {
 		serialize_tile(deck[i], &buf[0]);
 		for (size_t j = 0; j < pcnt; ++j) {
+			printf("Sending to player %zu: ", j);
 			print_buffer(buf, sizeof(buf));
-			write(players[j], buf, TILE_SZ); // TODO: Error handling
+			write(players[j], buf, TILE_SZ);
 		}
 	}
 	return 0;
@@ -83,7 +85,7 @@ enum reason {
 	INVALID = 2
 };
 
-static void game_over(int *players, int winner, enum reason r)
+static int game_over(int *players, int winner, enum reason r)
 {
 	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // Game_over? + TILE + Move
 	buf[0] = 1; /* Game over */
@@ -102,9 +104,10 @@ static void game_over(int *players, int winner, enum reason r)
 		print_buffer(buf, sizeof(buf));
 		if (write(players[i], buf, sizeof(buf)) != sizeof(buf)) {
 			printf("Game over error: %s\n", strerror(errno));
+			return 1;
 		}
 	}
-	return;
+	return 0;
 }
 
 /* Step through protocol with clients. */
@@ -114,28 +117,22 @@ static void protocol(void *args)
 	struct game *g = malloc(sizeof(*g));
 	make_game(g);
 	listen(*hostfd, 10);
-	printf("Listening.\n");
 
 	int current_player = 0; /* TODO: Randomly pick player to go first. */
 	int players[PLAYER_COUNT] = {0};
 	for (size_t i = 0; i < PLAYER_COUNT; ++i) {
 		players[i] = accept(*hostfd, NULL, NULL);
 	}
-	printf("Connected both players!\n");
-
 	if (send_clock_and_order(players, current_player, 5)) {
 		printf("Failed to send clock and order.\n");
 	}
-	printf("Sent clock and order.\n");
-
 	if (send_deck(players, PLAYER_COUNT, g->tile_deck, TILE_COUNT)) {
 		printf("Failed to send deck.\n");
 	}
 
 	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // Game_over? + tile + move
 	struct move previous;
-	memset(&previous, 0, sizeof(previous));
-	while (1) { /* Play game. TODO: Refactor into function? */
+	while (1) { /* Play game. */
 		buf[0] = 0; /* Assume we keep playing. */
 		if (!more_tiles(g)) {
 			/* TODO: Scoring. replace 0 with high scoring player. */
@@ -147,16 +144,16 @@ static void protocol(void *args)
 		write(players[current_player], buf, sizeof(buf));
 		if (read(players[current_player], buf, sizeof(buf))
 				< (ssize_t)sizeof(buf)) {
-			game_over(players, current_player^1, TIMEOUT);
+			game_over(players, current_player ^ 1, TIMEOUT);
 			break;
 		}
 		struct move m = deserialize_move(buf);
 		if (!tile_eq(m.tile, t) || play_move(g, m, current_player)) {
-			game_over(players, current_player^1, INVALID);
+			game_over(players, current_player ^ 1, INVALID);
 			break;
 		}
 		previous = m;
-		current_player ^= 1; /* Switch */
+		current_player ^= 1;
 	}
 	for (int i = 0; i < PLAYER_COUNT; ++i) {
 		close(players[i]);
@@ -176,6 +173,36 @@ static int get_socket_port(int socket)
 	return info.sin_port; /* Already in network order. */
 }
 
+static int send_ports(int *players, size_t player_count, int port)
+{
+	/* TODO: Error handling. */
+	uint16_t sending_port = port;
+	uint8_t buf[sizeof(sending_port)];
+
+	for (size_t i = 0; i < sizeof(buf); ++i) {
+		buf[i] = (uint8_t) (port >> (i * 8)); // Serialize ports
+	}
+	printf("Sending port %u\n", sending_port);
+
+	for (size_t i = 0; i < player_count; ++i) {
+		write(players[i], &buf, sizeof(buf));
+		close(players[i]); /* No longer need to talk to them. */
+	}
+	return 0;
+}
+
+static int* assign_game_port(void)
+{
+	int *hostfd = malloc(sizeof(int));	/* Thread will free() */
+	assert(hostfd);
+	*hostfd = socket(AF_INET, SOCK_STREAM, 0);
+	assert(*hostfd >= 0);
+	struct sockaddr_in host_addr = init_sockaddr(0); // random port
+	bind(*hostfd, (struct sockaddr *)&host_addr, sizeof(host_addr));
+
+        return hostfd;
+}
+
 #define LISTEN_PORT 5000 /* Arbitrarily chosen server port. */
 int main(void)
 {
@@ -189,11 +216,8 @@ int main(void)
 	int queued_players = 0;
 
 	pthread_attr_t attr; /* Child opttions TODO REFACTOR */
-	int rc;
 	pthread_attr_init(&attr);
-	if ((rc = pthread_attr_setstacksize(&attr, 4096*1024))) { // 2k
-		printf("ERROR: %s\n", strerror(rc));
-	}
+	pthread_attr_setstacksize(&attr, 4096*1024); /* 4k Is big enough */
 
         while (1) {
 		/* TODO Ensure unique clients (can't play with self) */
@@ -206,26 +230,12 @@ int main(void)
 		/* Found a match. Create a child thread to host game. */
 		/* TODO: Lots of error handling. */
 		pthread_t *child = malloc(sizeof(pthread_t));
-		if (!child) {
-			return 1;
-		}
+		assert(child);
 		pthread_detach(*child);			/* OS will free() */
-		int *hostfd = malloc(sizeof(int));	/* Thread will free() */
-		*hostfd = socket(AF_INET, SOCK_STREAM, 0);
-		struct sockaddr_in host_addr = init_sockaddr(0); // random port
-		bind(*hostfd, (struct sockaddr *)&host_addr, sizeof(host_addr));
+
+		int *hostfd = assign_game_port();	/* Thread will free() */
+		send_ports(players, PLAYER_COUNT, get_socket_port(*hostfd));
 		pthread_create(child, &attr, &protocol, hostfd);
-		
-		uint16_t port = get_socket_port(*hostfd);
-		unsigned char buf[sizeof(uint16_t)]; // Serialize port.
-		for (size_t i = 0; i < sizeof(buf); ++i) {
-			buf[i] = (uint8_t) (port >> (i * 8));
-		}
-		printf("Sending port: %u\n", ntohs(port));
-		for (int i = 0; i < PLAYER_COUNT; ++i) {
-			write(players[i], &buf, sizeof(buf));
-			close(players[i]); /* No longer need to talk to them. */
-		}
 		queued_players = 0;
         }
 	close(listenfd);
