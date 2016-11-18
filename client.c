@@ -180,22 +180,28 @@ int main(void)
 		printf("Got a move!\n");
 		unsigned char b[100];
 		struct tile t = deserialize_tile(&buf[1]);
+<<<<<<< HEAD
 		printf("Tile: \n%s\n", print_tile(t, b));
+=======
+		printf("Tile: %s\n", print_tile(t, b));
+		if (first) {
+			first = 0;
+		} else {
+			printf("DEBUG: ");
+			print_buffer(&buf[7], sizeof(buf) - 7);
+			struct move prev = deserialize_move(&buf[7]);
+			printf("Prev move | x: %d y: %d: rotation: %d \n%s\n",
+				prev.slot.x, prev.slot.y, prev.rotation,
+				print_tile(prev.tile, b));
+			play_move(g, prev, 1);
+		}
+>>>>>>> b603d76... Fixed a bug in the client code.
 		int mid = (AXIS - 1) / 2;
 		struct move m = make_move(t, make_slot(mid, mid), 0);
 		play_move(g, m, 0);
 		serialize_move(m, buf);
 		printf("Try playing the center.\n");
 		write(sockfd, buf, sizeof(buf));
-		if (first) {
-			first = 0;
-			continue;
-		}
-		struct move prev = deserialize_move(&buf[8]);
-		printf("Prev move | x: %d y: %d: rotation: %d \n%s\n",
-				prev.slot.x, prev.slot.y, prev.rotation,
-				print_tile(prev.tile, b));
-		play_move(g, prev, 1);
 	}
 
 	printf("DEBUG: %d\n", rc);
