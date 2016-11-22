@@ -8,6 +8,11 @@ struct tile make_tile(const enum edge edges[5], enum attribute a)
 	return t;
 }
 
+/**
+ * @param old Tile to rotate
+ * @param int Number of clockwise 90 degree rotations to perform
+ * @returns Rotated tile
+ */
 struct tile rotate_tile(const struct tile old, const int rotation)
 {
 	enum edge new[5];

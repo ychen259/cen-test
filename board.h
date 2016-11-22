@@ -15,11 +15,11 @@
 struct board {
 	struct tile tiles[AXIS*AXIS];
 	struct slot slot_spots[AXIS*AXIS];
-	unsigned int sps; /* # of open slot spots (placeable slots) */
+	unsigned int empty_slot_count;
 	char column_terminators[AXIS];
 };
 
 struct board make_board(void);
 char *print_board(struct board b, char res[BOARD_LEN]);
-int play_move_board(struct board *b, struct move m);
+enum move_validation_result play_move_board(struct board *b, struct move m);
 #endif

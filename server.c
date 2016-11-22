@@ -60,7 +60,7 @@ static void protocol(void *args)
 	/* Note, we should listen in a seperate thread. */
 	int *hostfd = (int *)args;
 	struct game *g = malloc(sizeof(*g));
-	make_game(g);
+	init_game(g);
 	listen(*hostfd, 10);
 	printf("Listening.\n");
 
@@ -93,7 +93,7 @@ static void protocol(void *args)
 		// if (read(players[player],&move,sizeof(move))<sizeof(move)) {
 		// 	/* player loses, player + 1 wins. */
 		// 	break;
-		// } else if (invalid_move(move)) {
+		// } else if (validate_move(move)) {
 		// 	/* player loses, player + 1 wins. */
 		// 	break;
 		// }
