@@ -9,5 +9,6 @@ struct slot {
 
 struct slot make_slot(unsigned int x, unsigned int y);
 int compare_slot_positions(struct slot a, struct slot b);
+struct slot* get_adjacent_slots(struct slot* adj, struct slot s);
 
 #endif

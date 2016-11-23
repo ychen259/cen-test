@@ -29,3 +29,19 @@ int compare_slot_positions(struct slot a, struct slot b)
 		return 0;
 	}
 }
+
+/** Fetches the slots adjacent to the given slot and
+ * stores them into <em>adj</em> in the order of top, right, bottom, left.
+ *
+ * @returns <em>adj</em>
+ * @precondition <em>adj</em> is an array of at least length 4 to store all adjacent slots.
+ */
+struct slot* get_adjacent_slots(struct slot* adj, struct slot s)
+{
+	adj[0] = make_slot(s.x  , s.y+1); /* top */
+	adj[1] = make_slot(s.x+1, s.y  ); /* right */
+	adj[2] = make_slot(s.x  , s.y-1); /* bottom */
+	adj[3] = make_slot(s.x-1, s.y  ); /* left */
+
+	return adj;
+}

@@ -98,11 +98,10 @@ static struct board remove_placeable_slot(struct board b, struct slot s)
  */
 static struct board update_slot_spots(struct board b, struct slot s)
 {
-	/* Check the slots above, left, right, and below. */
-	struct slot adj[4] = { 
-		make_slot(s.x, s.y - 1), make_slot(s.x - 1, s.y),
-		make_slot(s.x + 1, s.y), make_slot(s.x, s.y + 1)
-	};
+	/* Note coordinates for adjacent slots */
+	struct slot adj[4];
+	get_adjacent_slots(adj, s);
+
 	b = remove_placeable_slot(b, s);
 	for (int i = 0; i < 4; ++i) {
 		if (is_slot_empty(b, adj[i]) && is_slot_in_boundary(adj[i])) {
@@ -123,12 +122,8 @@ static enum game_error_code validate_move(struct board b, struct move m)
 	}
 
 	/* Check adjacent tiles to make sure edges match. */
-	struct slot adj[4] = {
-		make_slot(m.slot.x, m.slot.y + 1),	/* up */
-		make_slot(m.slot.x + 1, m.slot.y),	/* right */
-		make_slot(m.slot.x, m.slot.y - 1),	/* down */
-		make_slot(m.slot.x - 1, m.slot.y)	/* left*/
-	};
+	struct slot adj[4];
+	get_adjacent_slots(adj, m.slot);
 	for (unsigned int i = 0; i < sizeof(adj); ++i) { /* Need wrapping */
 		if (!is_slot_in_boundary(adj[i])) { /* ignore if not on board. */
 			continue;
