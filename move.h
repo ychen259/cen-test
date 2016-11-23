@@ -10,10 +10,10 @@ struct move {
 	int rotation; /** Rotation to apply to tile */
 };
 
-enum move_validation_result {
+enum game_error_code {
 	OK = 0,
-	E_NOT_PLACEABLE = 1,
-	E_EDGE_CONFLICT = 2
+	E_TILE_NOT_PLACEABLE = 1,
+	E_TILE_EDGE_CONFLICT = 2
 };
 
 struct move make_move(struct tile t, struct slot s, int rotation);

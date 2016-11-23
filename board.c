@@ -103,12 +103,12 @@ static struct board update_slot_spots(struct board b, struct slot s)
 
 /** Returns the validation code of the given move on the given board.
  * @returns 0 (OK) if a legal valid move, non-zero otherwise.
- * @see move.h:enum move_validation_result
+ * @see move.h:enum game_error_code
  */
-static enum move_validation_result validate_move(struct board b, struct move m)
+static enum game_error_code validate_move(struct board b, struct move m)
 {
 	if (!is_slot_placeable(b, m.slot)) {
-		return E_NOT_PLACEABLE; /* Slot not placeable. */
+		return E_TILE_NOT_PLACEABLE; /* Slot not placeable. */
 	}
 
 	/* Check adjacent tiles to make sure edges match. */
@@ -128,7 +128,7 @@ static enum move_validation_result validate_move(struct board b, struct move m)
 			continue; /* Empty tiles match with everything. */
 		}
 		if (pair != m.tile.edges[i]) { /* Corresponding don't match. */
-			return E_EDGE_CONFLICT;
+			return E_TILE_EDGE_CONFLICT;
 		}
 	}
 	return OK;
@@ -172,10 +172,10 @@ char *print_board(struct board b, char res[BOARD_LEN])
 	return res;
 }
 
-/** Tries to play the given move on the given board, updating the board and returning 0 (OK) on success, doing nothing and returning a <code>move_validation_result</code> otherwise. */
-enum move_validation_result play_move_board(struct board *b, struct move m)
+/** Tries to play the given move on the given board, updating the board and returning 0 (OK) on success, doing nothing and returning a <code>game_error_code</code> otherwise. */
+enum game_error_code play_move_board(struct board *b, struct move m)
 {
-	enum move_validation_result rc;
+	enum game_error_code rc;
 	if ((rc = validate_move(*b, m))) {
 		return rc;
 	}
@@ -197,7 +197,7 @@ static void print_placeable_slots(struct board b)
 
 static void play_and_check_move(struct board *b, struct move m)
 {
-	enum move_validation_result rc;
+	enum game_error_code rc;
 	if ((rc = play_move_board(b, m))) {
 		printf("Invalid move! %d\n", rc);
 	} else {
