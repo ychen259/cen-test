@@ -28,16 +28,16 @@ struct game {
 	struct board board;
 	struct tile tile_deck[TILE_COUNT];
 	size_t graphs_used;
-	size_t tiles_used;
+	size_t curr_tile_deck_idx;
 	size_t scores[PLAYER_COUNT];
 	size_t meeples[PLAYER_COUNT];
 	size_t graph_indices[TILE_COUNT * TILE_COUNT * 3];
 };
 
 void make_game(struct game *g);
-void make_game_with_deck(struct game *g, struct tile *deck);
+void set_game_deck(struct game *g, struct tile *deck);
 int play_move(struct game *g, struct move m, int player);
-int more_tiles(struct game *g);
+bool is_tile_deck_empty(struct game *g);
 struct tile deal_tile(struct game *g);
 
 #endif
