@@ -22,6 +22,7 @@ board: board.c board.h tile.o slot.o move.o
 
 serialization.o: serialization.c serialization.h
 	$(CC) $(CFLAGS) -c -o serialization.o serialization.c
+
 game.o: game.c game.h
 	$(CC) $(CFLAGS) -c -o game.o game.c
 

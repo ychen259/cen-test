@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>	/* memcpy */
 #include <stdlib.h>	/* free() */
+#include <stdbool.h>
 #include "edge.h"	/* edges. */
 #include "tile.h"	/* tiles. */
 #include "slot.h"	/* slots. */

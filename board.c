@@ -1,7 +1,5 @@
 #include "board.h"
 
-#include <stdbool.h>
-
 /** Gets the array index from the provided slot.
  * The slot is recorded with x and y values for graphic representation. The array used for storing all slots is an AXIS*AXIS length array.
  */
@@ -199,7 +197,7 @@ static void print_placeable_slots(struct board b)
 
 static void play_and_check_move(struct board *b, struct move m)
 {
-	int rc;
+	enum move_validation_result rc;
 	if ((rc = play_move_board(b, m))) {
 		printf("Invalid move! %d\n", rc);
 	} else {

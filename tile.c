@@ -1,16 +1,16 @@
 #include "tile.h"
 
-int tile_eq(struct tile a, struct tile b)
+bool is_tile_equal(struct tile a, struct tile b)
 {
 	for (int i = 0; i < 5; ++i) {
 		if (a.edges[i] != b.edges[i]) {
-			return 0;
+			return false;
 		}
 	}
 	if (a.attribute != b.attribute) {
-		return 0;
+		return false;
 	} else {
-		return 1;
+		return true;
 	}
 }
 

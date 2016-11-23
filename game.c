@@ -156,9 +156,12 @@ int play_move(struct game *g, struct move m, int player)
 	// Graph and score stuff here.
 }
 
-int more_tiles(struct game *g)
+/** Returns whether the number of tiles dealt for the given game exceeds <em>TILE_COUNT</em>.
+ * @see game.h: TILE_COUNT
+ */
+bool is_tile_deck_empty(struct game *g)
 {
-	return TILE_COUNT - g->curr_tile_deck_idx - 1;
+	return (TILE_COUNT - (g->curr_tile_deck_idx + 1)) <= 0;
 }
 
 /** Returns the next tile from the given game's tile_deck */
