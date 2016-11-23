@@ -22,6 +22,7 @@
 
 #define TILE_COUNT 72
 #define MEEPLE_COUNT 7
+#define PLAYER_COUNT 2
 
 struct game {
 	struct board board;
