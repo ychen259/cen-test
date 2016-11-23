@@ -125,7 +125,11 @@ static void init_deck(struct tile deck[TILE_COUNT])
 
 void make_game(struct game *g)
 {
-	g->graphs_used = g->tiles_used = g->scores[0] = g->scores[1] = 0;
+	g->graphs_used = g->tiles_used = 0;
+	for (size_t i = 0; i < PLAYER_COUNT; ++i) {
+		g->scores[i] = 0;
+		g->meeples[i] = MEEPLE_COUNT;
+	}
 	init_deck(g->tile_deck);
 	/* The first index must be 0 (have to start with start tile). */
 	shuffle_tiles(&g->tile_deck[1], TILE_COUNT - 1);
