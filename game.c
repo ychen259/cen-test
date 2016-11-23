@@ -126,13 +126,20 @@ static void init_deck(struct tile deck[TILE_COUNT])
 }
 
 /** Initialises the given game. */
-void init_game(struct game *g)
+void make_game(struct game *g)
 {
-	g->graphs_used = g->curr_tile_deck_idx = g->scores[0] = g->scores[1] = 0; /* Ensure these are all initialised to 0. */
+	g->graphs_used = 1;
+	g->curr_tile_deck_idx = 0;
+	for (size_t i = 0; i < PLAYER_COUNT; ++i) {
+		g->scores[i] = 0;
+		g->meeples[i] = MEEPLE_COUNT;
+	}
 	init_deck(g->tile_deck);
 	/* Leave index 0 untouched. That index will be the starting tile. */
 	shuffle_tiles(&g->tile_deck[1], TILE_COUNT - 1);
 	g->board = make_board();
+	memset(g->graph_indices, 0,
+			sizeof(g->graph_indices[3])*TILE_COUNT*TILE_COUNT*3);
 	return;
 }
 
@@ -149,6 +156,11 @@ int play_move(struct game *g, struct move m, int player)
 	// Graph and score stuff here.
 }
 
+int more_tiles(struct game *g)
+{
+	return TILE_COUNT - g->curr_tile_deck_idx - 1;
+}
+
 /** Returns the next tile from the given game's tile_deck */
 struct tile deal_tile(struct game *g)
 {
@@ -159,7 +171,7 @@ struct tile deal_tile(struct game *g)
 int main(void)
 {
 	struct game g;
-	init_game(&g);
+	make_game(&g);
 	char buf[TILE_LEN];
 	for (int i = 0; i < TILE_COUNT; ++i) {
 		printf("%s\n", print_tile(deal_tile(&g), buf));

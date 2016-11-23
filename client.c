@@ -11,7 +11,9 @@
 #include <sys/types.h>	/* read(), write() */
 
 #include "limits.h"
+#include "serialization.h"
 #include "game.h"
+#include "move.h"
 
 static struct sockaddr_in make_sockaddr_in_port(int port)
 {
@@ -66,13 +68,41 @@ static int connect_retry(char *host, int port)
 	return sockfd;
 }
 
-static int get_clock(int sockfd, uint64_t *clock)
+static int connect_game(char *host, int welcome_port)
 {
-	*clock = 0;
-	unsigned char buf[sizeof(*clock)];
-	read(sockfd, buf, sizeof(buf));
+	/* TODO: Better error handling. */
+	int sockfd;
+	if ((sockfd = connect_retry(host, htons(welcome_port))) < 0) {
+		printf("Error: %s\n", strerror(errno));
+		return -1;
+	} 
+	uint16_t port = 0;
+	unsigned char buf[sizeof(port)];
+	if (read(sockfd, &buf, sizeof(buf)) < 0) {
+		printf("Read error: %s\n", strerror(errno));
+		return -1;
+	}
 	for (size_t i = 0; i < sizeof(buf); ++i) {
-		*clock += (buf[i] << (i * 8));
+		port += (buf[i] << (8 * i));
+	}
+	printf("Got port: %u\n", ntohs(port));
+	close(sockfd);
+	if ((sockfd = connect_retry(host, port)) < 0) {
+		printf("Error: %s\n", strerror(errno));
+		return -1;
+	}
+	return sockfd;
+}
+
+static int get_clock_and_order(int sockfd, int *first, uint64_t *clock)
+{
+	unsigned char buf[1 + sizeof(*clock)]; // first? + clock
+	read(sockfd, buf, sizeof(buf));
+	print_buffer(buf, sizeof(buf));
+	*first = buf[0];
+	*clock = 0;
+	for (size_t i = 0; i < sizeof(buf) - 1; ++i) {
+		*clock += (buf[i + 1] << (i * 8));
 	}
 	return 0;
 }
@@ -83,13 +113,10 @@ static int get_deck(int sockfd, struct tile *deck, size_t clen, size_t dlen)
 	for (size_t i = 0; i < dlen; ++i) {
 		read(sockfd, buf, clen);
 		enum edge edges[5];
-		enum attribute a;
-		edges[0] = buf[0];
-		edges[1] = buf[1];
-		edges[2] = buf[2];
-		edges[3] = buf[3];
-		edges[4] = buf[4];
-		a = buf[5];
+		for (size_t j = 0; j < 5; ++j) {
+			edges[j] = buf[j];
+		}
+		enum attribute a = buf[5];
 		deck[i] = make_tile(edges, a);
 	}
 	return 0;
@@ -98,47 +125,70 @@ static int get_deck(int sockfd, struct tile *deck, size_t clen, size_t dlen)
 #define REMOTE_HOST "127.0.0.1" /* TODO: Get a command line variable. */
 #define REMOTE_PORT 5000 /* TODO: Factor into command line variable. */
 
-//int main(int argc, char *argv[])
+static struct game *init_game(int socket)
+{
+	/* TODO: Error handling? */
+	struct game *g = malloc(sizeof(*g));
+	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
+	get_deck(socket, tileset, TILE_SZ, TILE_COUNT);
+	set_game_deck(g, tileset);
+	free(tileset);
+	return g;
+}
+
 int main(void)
 {
 	int sockfd;
-	if ((sockfd = connect_retry(REMOTE_HOST, htons(REMOTE_PORT))) < 0) {
-		printf("Error: %s\n", strerror(errno));
-		return 1;
-	} 
-
-	uint16_t port;
-	if (read(sockfd, &port, sizeof(port)) < 0) {
-		printf("Read error: %s\n", strerror(errno));
-		return 1;
-	}
-	printf("Got port: %u\n", ntohs(port));
-	close(sockfd);
-
-	if ((sockfd = connect_retry(REMOTE_HOST, port)) < 0) {
+	if ((sockfd = connect_game(REMOTE_HOST, REMOTE_PORT)) < 0) {
 		printf("Error: %s\n", strerror(errno));
 		return 1;
 	}
-
 	printf("Successfully connected.\n");
-	unsigned char buf[100];
+
+	int first;
 	uint64_t move_clock;
-	get_clock(sockfd, &move_clock);
+	get_clock_and_order(sockfd, &first, &move_clock);
 	printf("Clock: %llu\n", move_clock);
-
-	/* TODO: Refactor? */
-	struct game *g = malloc(sizeof(*g));
-	struct tile *tileset = malloc(sizeof(*tileset) * TILE_COUNT);
-	get_deck(sockfd, tileset, TILE_SZ, TILE_COUNT);
-	set_game_deck(g, tileset);
-	free(tileset);
-
-	for (int i = 0; i < TILE_COUNT; ++i) {
-		printf("%s\n", print_tile(deal_tile(g), buf));
+	if (first) {
+		printf("I'm first!\n");
+	} else {
+		printf("I'm second!\n");
 	}
 
+	struct game *g = init_game(sockfd); /* TODO: Refactor? */
+	unsigned char buf[1 + TILE_SZ + MOVE_SZ]; // game_over? + tile + move
+	while (read(sockfd, buf, sizeof(buf)) == sizeof(buf)) {
+		printf("Recieved: ");
+		print_buffer(buf, sizeof(buf));
+		if (buf[0]) { /* game over. */
+			if (buf[1]) {
+				printf("I won!\n");
+			} else {
+				printf("I lost!\n");
+			}
+			break;
+		}
+		/* Deserialize tile and move. */
+		struct tile t = deserialize_tile(&buf[1]);
+		unsigned char b[100];
+		printf("Tile: \n%s\n", print_tile(t, b));
+		if (!first) {
+			struct move prev = deserialize_move(&buf[7]);
+			printf("Prev move | x: %d y: %d: rotation: %d \n%s\n",
+				prev.slot.x, prev.slot.y, prev.rotation,
+				print_tile(prev.tile, b));
+			play_move(g, prev, 1);
+		} else { /* No previous move to deal with. */
+			first = 0;
+		}
+		int mid = (AXIS - 1) / 2;
+		struct move m = make_move(t, make_slot(mid, mid), 0);
+		play_move(g, m, 0);
+		serialize_move(m, buf);
+		printf("Try playing the center.\n");
+		write(sockfd, buf, sizeof(buf));
+	}
 	close(sockfd);
-
 	free(g);
 	return 0;
 }

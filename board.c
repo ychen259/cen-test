@@ -15,7 +15,6 @@ static inline size_t get_index_from_slot(struct slot s)
  */
 static bool is_slot_placeable(struct board b, struct slot s)
 {
-#if 0
 	/* TODO: Switch to linear search? */
 	/* Linear search open positions for the desired one. */
 	for (unsigned i = 0; i < b.empty_slot_count; ++i) {
@@ -23,27 +22,9 @@ static bool is_slot_placeable(struct board b, struct slot s)
 		case -1:
 			continue;
 		case 0:
-			return i + 1;
-		case 1:
-			return 0;
-		}
-	}
-#endif
-	/* Binary search open positions for the desired one. */
-	int low = 0;
-	int high = b.empty_slot_count;
-	int m;
-	while (low < high) {
-		m = (low + high) / 2;
-		switch(compare_slot_positions(b.slot_spots[m], s)) {
-		case -1:
-			low = m + 1;
-			break;
-		case 1:
-			high = m - 1;
-			break;
-		case 0:
 			return true;
+		case 1:
+			return false;
 		}
 	}
 	return false;
@@ -155,6 +136,56 @@ static enum move_validation_result validate_move(struct board b, struct move m)
 	return OK;
 }
 
+/** Returns an initialised board with an empty slot in the very centre. */
+struct board make_board(void)
+{
+       struct board b;
+       enum edge edges[5] = { EMPTY, EMPTY, EMPTY, EMPTY, EMPTY }; /* Starting centre piece */
+       const unsigned int mid = (AXIS - 1) / 2; /* Must start in center. */
+       b.slot_spots[0] = make_slot(mid, mid);
+       b.empty_slot_count = 1;
+       for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
+		b.tiles[i] = make_tile(edges, NONE);
+       }
+       /* Tab between columns except for the last one, which newlines. */
+       memset(b.column_terminators, '\t', AXIS - 1);
+       b.column_terminators[AXIS - 1] = '\n';
+       return b;
+}
+
+char *print_board(struct board b, char res[BOARD_LEN])
+{
+	const size_t cnt = TILE_LINES;
+	const size_t len = TILE_LINE_LEN;
+	char buf[TILE_LEN];
+
+	/* Pretty print the board in NxN format. */
+	for (size_t i = 0; i < AXIS; ++i) {
+		for (size_t j = 0; j < AXIS; ++j) {
+			print_tile(b.tiles[get_index_from_slot(make_slot(i, j))], buf);
+			for (size_t k = 0; k < cnt; ++k) {
+				const size_t ind = ((i *cnt +k) *AXIS +j) *len;
+				buf[(k + 1) *len - 1] = b.column_terminators[j];
+				memcpy(&res[ind], &buf[len * k], len);
+			}
+		}
+	}
+	res[BOARD_LEN - 1] = '\0';
+	return res;
+}
+
+/** Tries to play the given move on the given board, updating the board and returning 0 (OK) on success, doing nothing and returning a <code>move_validation_result</code> otherwise. */
+enum move_validation_result play_move_board(struct board *b, struct move m)
+{
+	enum move_validation_result rc;
+	if ((rc = validate_move(*b, m))) {
+		return rc;
+	}
+	b->tiles[get_index_from_slot(m.slot)] = rotate_tile(m.tile, m.rotation);
+	*b = update_slot_spots(*b, m.slot);
+	return OK;
+}
+
 #ifdef TEST
 static void print_placeable_slots(struct board b)
 {
@@ -241,53 +272,3 @@ int main(void)
 	return 0;
 }
 #endif
-
-/** Returns an initialised board with an empty slot in the very centre. */
-struct board make_board(void)
-{
-       struct board b;
-       enum edge edges[5] = { EMPTY, EMPTY, EMPTY, EMPTY, EMPTY }; /* Starting centre piece */
-       const unsigned int mid = (AXIS - 1) / 2; /* Must start in center. */
-       b.slot_spots[0] = make_slot(mid, mid);
-       b.empty_slot_count = 1;
-       for (unsigned int i = 0; i < AXIS*AXIS; ++i) {
-		b.tiles[i] = make_tile(edges, NONE);
-       }
-       /* Tab between columns except for the last one, which newlines. */
-       memset(b.column_terminators, '\t', AXIS - 1);
-       b.column_terminators[AXIS - 1] = '\n';
-       return b;
-}
-
-char *print_board(struct board b, char res[BOARD_LEN])
-{
-	const size_t cnt = TILE_LINES;
-	const size_t len = TILE_LINE_LEN;
-	char buf[TILE_LEN];
-
-	/* Pretty print the board in NxN format. */
-	for (size_t i = 0; i < AXIS; ++i) {
-		for (size_t j = 0; j < AXIS; ++j) {
-			print_tile(b.tiles[get_index_from_slot(make_slot(i, j))], buf);
-			for (size_t k = 0; k < cnt; ++k) {
-				const size_t ind = ((i *cnt +k) *AXIS +j) *len;
-				buf[(k + 1) *len - 1] = b.column_terminators[j];
-				memcpy(&res[ind], &buf[len * k], len);
-			}
-		}
-	}
-	res[BOARD_LEN - 1] = '\0';
-	return res;
-}
-
-/** Tries to play the given move on the given board, updating the board and returning 0 (OK) on success, doing nothing and returning a <code>move_validation_result</code> otherwise. */
-enum move_validation_result play_move_board(struct board *b, struct move m)
-{
-	enum move_validation_result rc;
-	if ((rc = validate_move(*b, m))) {
-		return rc;
-	}
-	b->tiles[get_index_from_slot(m.slot)] = rotate_tile(m.tile, m.rotation);
-	*b = update_slot_spots(*b, m.slot);
-	return OK;
-}

@@ -21,19 +21,23 @@
 #include "rngs/mt19937-64.h" /* Mersenne Twister PRNG. Try PCG if too slow */
 
 #define TILE_COUNT 72
+#define MEEPLE_COUNT 7
+#define PLAYER_COUNT 2
 
 struct game {
-	int graphs[100]; /* Placeholder for struct graph */
 	struct board board;
 	struct tile tile_deck[TILE_COUNT];
 	size_t graphs_used;
 	size_t curr_tile_deck_idx;
-	int scores[2];
+	size_t scores[PLAYER_COUNT];
+	size_t meeples[PLAYER_COUNT];
+	size_t graph_indices[TILE_COUNT * TILE_COUNT * 3];
 };
 
-void init_game(struct game *g);
+void make_game(struct game *g);
 void set_game_deck(struct game *g, struct tile *deck);
 int play_move(struct game *g, struct move m, int player);
+int more_tiles(struct game *g);
 struct tile deal_tile(struct game *g);
 
 #endif
