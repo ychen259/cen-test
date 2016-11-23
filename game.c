@@ -1,6 +1,8 @@
 #include "game.h"
 
-/** Returns a random int between the given <em>low</em> and <em>high</em> bounds, inclusive. */
+/** Returns a random int
+ * between the given <em>low</em> and <em>high</em> bounds, inclusive.
+ */
 static size_t rand_bound(size_t low, size_t high)
 {
 	size_t r;
@@ -156,7 +158,9 @@ int play_move(struct game *g, struct move m, int player)
 	// Graph and score stuff here.
 }
 
-/** Returns whether the number of tiles dealt for the given game exceeds <em>TILE_COUNT</em>.
+/** Returns whether the number of tiles dealt for the given game exceeds
+ * <em>TILE_COUNT</em>.
+ *
  * @see game.h: TILE_COUNT
  */
 bool is_tile_deck_empty(struct game *g)
