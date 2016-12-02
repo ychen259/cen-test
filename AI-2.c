@@ -225,7 +225,7 @@ struct move randomMove(struct game *myGame, struct tile currentTile, CurrentPlay
  //This function will give best move for AI
  //If the game is over, don't call this function
  //If AI run out of tile, don't call this function
-struct move runSimulations(struct game *myGame, struct tile *AITileStack, struct tile *HumanTileStack, int count){
+struct move best_move(struct game *myGame, struct tile *AITileStack, struct tile *HumanTileStack, int count){
 	struct move pos;
 	struct move firstMove;
     int winCount[count];
@@ -239,10 +239,10 @@ struct move runSimulations(struct game *myGame, struct tile *AITileStack, struct
     /**if(myGame->tiles_used == (2 * TILE_COUNT)) return emptyMOVE**/
 
     //combine AI tile stack with Human tile stack as one tile stack (human first -- AI first -> human second -- AI second ...)
-    /**struct tile orderedTile[2 * TILE_COUNT];**/
-    struct tile orderedTile[2 * 5];
-    /**for(int i = 0; i < 2*TILE_COUNT; i++){**/
-    for(int i = 0; i < 2*5; i++){
+    struct tile orderedTile[2 * TILE_COUNT];
+    //struct tile orderedTile[2 * 5];
+    for(int i = 0; i < 2*TILE_COUNT; i++){
+    //for(int i = 0; i < 2*5; i++){
       orderedTile[i] = (i%2 == 0)? HumanTileStack[i/2]: AITileStack[i/2];
     }
 
@@ -251,12 +251,12 @@ struct move runSimulations(struct game *myGame, struct tile *AITileStack, struct
       player = AI;
       firstMove.rotation = INT_MIN;
 
-      /** for(int j = tempGame.tiles_used; j < 2*TILE_COUNT; i++){**/
-      for(int j = tempGame->tiles_used; j < 10; j++){
-        printf("run simulation j:  %i\n", j);
+      for(int j = tempGame.tiles_used; j < 2*TILE_COUNT; i++){
+      //for(int j = tempGame->tiles_used; j < 10; j++){
+        //printf("run simulation j:  %i\n", j);
         pos = randomMove(tempGame, orderedTile[j], player);
 
-        /**play_move(tempGame, pos, player);**/  //play_more function need to be fix
+        play_move(tempGame, pos, player);  //play_more function need to be fix
 
         calculate_scores(tempGame);
         winner = checkWin(tempGame);
@@ -279,7 +279,7 @@ struct move runSimulations(struct game *myGame, struct tile *AITileStack, struct
 	}
 	return firstMove;
 }
-
+/*
 int main(void)
 {
     struct game *games = malloc(sizeof(*games));
@@ -326,7 +326,7 @@ int main(void)
     printf("Test randomMove function\n");*/}
     //struct move possibleRandomMove = randomMove(games, setTile, AI);
    // printf("random move slot X: %i, Y: %i, rotation: %i, tiger: %i, gator: %i\n", possibleRandomMove.slot.x, possibleRandomMove.slot.y,  possibleRandomMove.rotation, possibleRandomMove.tcorner, possibleRandomMove.ccorner);
-    struct tile AItileStack[5];
+   /* struct tile AItileStack[5];
     for(int i = 0; i< 5; i++){
       AItileStack[0].edges[i] = setTile.edges[i];
       AItileStack[1].edges[i] = setTile.edges[i];
@@ -363,7 +363,6 @@ int main(void)
 
     //runSimulation
     printf("Test runSimulation\n");
-   struct move bestMove = runSimulations(games, AItileStack, PlayertileStack, 2);
+    struct move bestMove = best_move(games, AItileStack, PlayertileStack, 2);
      printf("best move slot X: %i, Y: %i, rotation: %i, tiger: %i, gator: %i\n", bestMove.slot.x, bestMove.slot.y,  bestMove.rotation, bestMove.tcorner, bestMove.ccorner);
-	return 0;
-}
+}*/
